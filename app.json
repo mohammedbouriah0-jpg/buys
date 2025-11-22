@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "buys",
+    "slug": "buys",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/Logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.buys.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "icon": "./assets/Logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/Logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.buys.app"
+    },
+    "web": {
+      "favicon": "./assets/Logo.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "L'application a besoin d'accéder à vos photos pour ajouter des images de produits et vidéos.",
+          "cameraPermission": "L'application a besoin d'accéder à votre caméra pour prendre des photos de produits."
+        }
+      ]
+    ],
+    "scheme": "buys",
+    "newArchEnabled": true,
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "e7071abd-b30e-4091-9969-9c2352329dfb"
+      }
+    }
+  }
+}
