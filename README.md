@@ -67,13 +67,6 @@ Voir `backend/.env.example` pour la liste complète.
 - Codes promo
 - Deep linking
 
-## Sécurité
-
-⚠️ **Ne jamais commiter** :
-- Fichiers `.env`
-- Keystores (`.keystore`)
-- `fcm-service-account.json`
-- Mots de passe en clair
 
 ## Liens
 
