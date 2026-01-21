@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,14 +10,18 @@ import {
   Animated,
   Alert,
 } from "react-native";
+import { useKeyboardScroll } from "@/hooks/useKeyboardScroll";
 import { useRouter } from "expo-router";
 import { Camera, Save, X, User, Mail, Phone, MapPin, Store, FileText } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/lib/auth-context";
-import { userAPI, shopsAPI } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { userAPI } from "@/lib/api";
+import { WilayaSelector } from "@/components/wilaya-selector";
 
 export default function EditProfileModern() {
   const { user, refreshUser, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -26,9 +30,9 @@ export default function EditProfileModern() {
   // États pour les champs
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [address, setAddress] = useState(user?.address || "");
-  const [wilaya, setWilaya] = useState(user?.wilaya || "");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [wilaya, setWilaya] = useState("");
   const [avatar, setAvatar] = useState<string | null>(user?.avatar || null);
   
   // États spécifiques boutique
@@ -37,9 +41,27 @@ export default function EditProfileModern() {
   const [shopLogo, setShopLogo] = useState<string | null>(user?.shopLogo || null);
 
   const isShop = user?.type === "shop";
+  
+  // Keyboard scroll
+  const { scrollViewRef, keyboardHeight, scrollToInput } = useKeyboardScroll();
+
+  // Charger les données utilisateur
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userData = await userAPI.getProfile();
+        setPhone(userData.phone || "");
+        setAddress(userData.address || "");
+        setWilaya(userData.wilaya || "");
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+    loadUserData();
+  }, []);
 
   // Animation d'entrée
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -98,6 +120,22 @@ export default function EditProfileModern() {
   };
 
   const handleSave = async () => {
+    // Validation des champs obligatoires
+    if (!name.trim()) {
+      Alert.alert(t("error"), t("nameRequired") || "Le nom est requis");
+      return;
+    }
+    
+    if (!phone.trim()) {
+      Alert.alert(t("error"), t("phoneRequired") || "Le téléphone est requis");
+      return;
+    }
+    
+    if (isShop && !shopName.trim()) {
+      Alert.alert(t("error"), t("shopNameRequired") || "Le nom de la boutique est requis");
+      return;
+    }
+    
     setLoading(true);
     try {
       const formData = new FormData();
@@ -171,7 +209,13 @@ export default function EditProfileModern() {
         </TouchableOpacity>
       </Animated.View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: keyboardHeight + 150 }}
+      >
         <Animated.View
           style={{
             opacity: fadeAnim,
@@ -247,6 +291,7 @@ export default function EditProfileModern() {
                   value={shopName}
                   onChangeText={setShopName}
                   placeholderTextColor="#8e8e8e"
+                  onFocus={() => scrollToInput(350)}
                 />
               </View>
 
@@ -260,6 +305,7 @@ export default function EditProfileModern() {
                   value={shopDescription}
                   onChangeText={setShopDescription}
                   multiline
+                  onFocus={() => scrollToInput(450)}
                   numberOfLines={4}
                   textAlignVertical="top"
                   placeholderTextColor="#8e8e8e"
@@ -277,6 +323,7 @@ export default function EditProfileModern() {
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
                   placeholderTextColor="#8e8e8e"
+                  onFocus={() => scrollToInput(550)}
                 />
               </View>
 
@@ -290,19 +337,15 @@ export default function EditProfileModern() {
                   value={address}
                   onChangeText={setAddress}
                   placeholderTextColor="#8e8e8e"
+                  onFocus={() => scrollToInput(620)}
                 />
               </View>
 
-              <View style={styles.inputGroup}>
-                <View style={[styles.inputIcon, { backgroundColor: '#fef3c7' }]}>
-                  <MapPin size={20} color="#f59e0b" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Wilaya"
+              <View style={{ marginBottom: 12 }}>
+                <WilayaSelector
                   value={wilaya}
-                  onChangeText={setWilaya}
-                  placeholderTextColor="#8e8e8e"
+                  onChange={setWilaya}
+                  placeholder="Sélectionner la wilaya"
                 />
               </View>
             </View>
@@ -324,6 +367,7 @@ export default function EditProfileModern() {
                 value={name}
                 onChangeText={setName}
                 placeholderTextColor="#8e8e8e"
+                onFocus={() => scrollToInput(isShop ? 750 : 350)}
               />
             </View>
 
@@ -356,6 +400,7 @@ export default function EditProfileModern() {
                     onChangeText={setPhone}
                     keyboardType="phone-pad"
                     placeholderTextColor="#8e8e8e"
+                    onFocus={() => scrollToInput(480)}
                   />
                 </View>
 
@@ -369,19 +414,15 @@ export default function EditProfileModern() {
                     value={address}
                     onChangeText={setAddress}
                     placeholderTextColor="#8e8e8e"
+                    onFocus={() => scrollToInput(550)}
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <View style={[styles.inputIcon, { backgroundColor: '#fef3c7' }]}>
-                    <MapPin size={20} color="#f59e0b" />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Wilaya"
+                <View style={{ marginBottom: 12 }}>
+                  <WilayaSelector
                     value={wilaya}
-                    onChangeText={setWilaya}
-                    placeholderTextColor="#8e8e8e"
+                    onChange={setWilaya}
+                    placeholder="Sélectionner votre wilaya"
                   />
                 </View>
               </>

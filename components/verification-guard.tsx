@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { AlertTriangle } from "lucide-react-native";
+import { AlertTriangle, CreditCard } from "lucide-react-native";
 import { useAuth } from "@/lib/auth-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "@/config";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 interface VerificationGuardProps {
   children: React.ReactNode;
@@ -13,8 +14,11 @@ interface VerificationGuardProps {
 export function VerificationGuard({ children }: VerificationGuardProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
 
   useEffect(() => {
     checkVerification();
@@ -33,6 +37,8 @@ export function VerificationGuard({ children }: VerificationGuardProps) {
       if (response.ok) {
         const data = await response.json();
         setIsVerified(data.is_verified);
+        setIsSubscribed(data.is_subscribed);
+        setSubscriptionEndDate(data.subscription_end_date);
       }
     } catch (error) {
       console.error("Erreur vérification:", error);
@@ -49,26 +55,59 @@ export function VerificationGuard({ children }: VerificationGuardProps) {
     );
   }
 
+  // Pas vérifié
   if (!isVerified) {
     return (
       <View style={styles.container}>
         <View style={styles.blockedCard}>
           <AlertTriangle size={64} color="#f59e0b" />
-          <Text style={styles.blockedTitle}>Boutique Non Vérifiée</Text>
+          <Text style={styles.blockedTitle}>{t("shopNotVerified") || "Boutique Non Vérifiée"}</Text>
           <Text style={styles.blockedMessage}>
-            Votre boutique doit être vérifiée pour accéder à cette fonctionnalité.
+            {t("shopMustBeVerified") || "Votre boutique doit être vérifiée pour accéder à cette fonctionnalité."}
           </Text>
           <TouchableOpacity
             style={styles.verifyButton}
             onPress={() => router.push("/gestion/verification")}
           >
-            <Text style={styles.verifyButtonText}>Vérifier ma boutique</Text>
+            <Text style={styles.verifyButtonText}>{t("verifyMyShop") || "Vérifier ma boutique"}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>Retour</Text>
+            <Text style={styles.backButtonText}>{t("back") || "Retour"}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Vérifié mais pas abonné ou abonnement expiré
+  if (!isSubscribed) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.blockedCard}>
+          <CreditCard size={64} color="#ef4444" />
+          <Text style={styles.blockedTitle}>{t("subscriptionExpired") || "Abonnement Expiré"}</Text>
+          <Text style={styles.blockedMessage}>
+            {t("subscriptionExpiredMessage") || "Votre abonnement a expiré. Renouvelez-le pour continuer à utiliser les fonctionnalités de gestion."}
+          </Text>
+          {subscriptionEndDate && (
+            <Text style={styles.expiredDate}>
+              {t("expiredOn") || "Expiré le"} {new Date(subscriptionEndDate).toLocaleDateString(isRTL ? 'ar-DZ' : 'fr-FR')}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={[styles.verifyButton, { backgroundColor: '#3b82f6' }]}
+            onPress={() => router.push("/gestion/subscription")}
+          >
+            <Text style={styles.verifyButtonText}>{t("renewSubscription") || "Renouveler l'abonnement"}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>{t("back") || "Retour"}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -112,6 +151,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 24,
+  },
+  expiredDate: {
+    fontSize: 14,
+    color: "#ef4444",
+    fontWeight: "600",
+    marginBottom: 16,
   },
   verifyButton: {
     backgroundColor: "#f59e0b",

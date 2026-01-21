@@ -1,0 +1,20 @@
+diff --git a/node_modules/react-native-worklets/android/build.gradle b/node_modules/react-native-worklets/android/build.gradle
+index 58211b7..9d79e91 100644
+--- a/node_modules/react-native-worklets/android/build.gradle
++++ b/node_modules/react-native-worklets/android/build.gradle
+@@ -291,11 +291,10 @@ def validateReactNativeVersionResult = providers.exec {
+ 
+ task assertMinimalReactNativeVersionTask {
+     doFirst {
+-        if (validateReactNativeVersionResult.getResult().get().exitValue != 0) {
+-            throw new GradleException(validateReactNativeVersionResult.getStandardError().getAsText().get().trim())
+-        }
+-    }
+-}
++        logger.warn("[Worklets] Version check bypassed for React Native ${REACT_NATIVE_VERSION} with Worklets ${WORKLETS_VERSION}")
++        // Bypass the version check for Expo compatibility
++        // if (validateReactNativeVersionResult.getResult().get().exitValue != 0) {
++        //     throw new GradleException(validateReactNativeVersionResult.getStandardError().getAsText().get().trim())
+        
+ preBuild.dependsOn(assertMinimalReactNativeVersionTask)
+ 

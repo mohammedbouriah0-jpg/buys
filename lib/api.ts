@@ -1,5 +1,36 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "@/config";
+import { API_URL, API_CONFIG } from "@/config";
+
+// Base URL pour les médias (sans /api)
+export const getMediaBaseUrl = () => {
+  const protocol = API_CONFIG.USE_HTTPS ? 'https' : 'http';
+  return `${protocol}://${API_CONFIG.SERVER_IP}`;
+};
+
+/**
+ * Construit l'URL complète d'un média (vidéo, image, etc.)
+ * Gère les URLs relatives et absolues
+ * Préserve les URLs CDN (BunnyCDN, etc.)
+ */
+export const getMediaUrl = (path: string | null | undefined): string => {
+  if (!path) return '';
+  
+  // Si c'est déjà une URL complète
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    // Vérifier si c'est une URL CDN (BunnyCDN) - ne pas la modifier
+    if (path.includes('.b-cdn.net') || path.includes('bunnycdn.com')) {
+      return path;
+    }
+    
+    // Pour les autres URLs (ancien serveur), remplacer par la nouvelle adresse
+    const oldUrlPattern = /^https?:\/\/[^/]+/;
+    return path.replace(oldUrlPattern, getMediaBaseUrl());
+  }
+  
+  // Si c'est un chemin relatif, construire l'URL complète
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${getMediaBaseUrl()}${cleanPath}`;
+};
 
 // Get auth token
 const getToken = async () => {
@@ -60,30 +91,58 @@ const uploadRequest = async (endpoint: string, formData: FormData, method: strin
     body: formData,
   });
 
+  // Lire la réponse en texte d'abord
+  const text = await response.text();
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Erreur upload");
+    // Vérifier si c'est du HTML (erreur proxy/serveur)
+    if (text.startsWith('<') || text.includes('<!DOCTYPE')) {
+      console.error('❌ Upload error - Server returned HTML:', text.substring(0, 200));
+      if (response.status === 413) {
+        throw new Error("Fichier trop volumineux. Réduisez la taille.");
+      }
+      throw new Error("Erreur serveur. Vérifiez la taille du fichier.");
+    }
+    
+    try {
+      const error = JSON.parse(text);
+      throw new Error(error.error || "Erreur upload");
+    } catch (e) {
+      throw new Error("Erreur upload: " + response.status);
+    }
   }
 
-  return response.json();
+  // Parser le JSON de la réponse
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error('❌ JSON parse error:', text.substring(0, 200));
+    throw new Error("Réponse serveur invalide");
+  }
 };
 
 // Auth API
 export const authAPI = {
   register: async (data: any) => {
+    const language = await AsyncStorage.getItem('app_language') || 'fr';
     const result = await apiRequest("/auth/register", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, language }),
     });
     await AsyncStorage.setItem("auth_token", result.token);
     return result;
   },
 
   login: async (email: string, password: string, type?: "client" | "shop" | "admin") => {
+    console.log('🔐 [API] Login request pour:', email);
     const result = await apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password, ...(type && { type }) }),
     });
+    console.log('📥 [API] Login response reçue:', JSON.stringify(result, null, 2));
+    console.log('📥 [API] User data:', JSON.stringify(result.user, null, 2));
+    console.log('📥 [API] email_verified:', result.user?.email_verified);
+    console.log('📥 [API] email_verified type:', typeof result.user?.email_verified);
     await AsyncStorage.setItem("auth_token", result.token);
     return result;
   },
@@ -124,6 +183,15 @@ export const productsAPI = {
   },
 
   delete: (id: string) => apiRequest(`/products/${id}`, { method: "DELETE" }),
+
+  // Likes
+  getMyLikes: () => apiRequest("/products/my-likes"),
+  
+  likeProduct: (id: number) => apiRequest(`/products/${id}/like`, { method: "POST" }),
+  
+  unlikeProduct: (id: number) => apiRequest(`/products/${id}/like`, { method: "DELETE" }),
+  
+  checkLiked: (id: number) => apiRequest(`/products/${id}/liked`),
 };
 
 // Videos API
@@ -154,7 +222,8 @@ export const videosAPI = {
 
   view: (id: string) => apiRequest(`/videos/${id}/view`, { method: "POST" }),
 
-  getComments: (id: string) => apiRequest(`/videos/${id}/comments`),
+  getComments: (id: string, page: number = 1, limit: number = 10) => 
+    apiRequest(`/videos/${id}/comments?page=${page}&limit=${limit}`),
 
   addComment: (id: string, content: string, parent_id?: number) =>
     apiRequest(`/videos/${id}/comments`, {
@@ -205,8 +274,14 @@ export const ordersAPI = {
   getMyOrders: (page: number = 1, limit: number = 10) => 
     apiRequest(`/orders?page=${page}&limit=${limit}`),
 
+  getMyOrdersCount: () => 
+    apiRequest(`/orders/count`),
+
   getShopOrders: (page: number = 1, limit: number = 10) => 
     apiRequest(`/orders/shop?page=${page}&limit=${limit}`),
+
+  getShopOrdersCount: () => 
+    apiRequest(`/orders/shop/count`),
 
   getById: async (id: string) => {
     console.log("📡 [API] ordersAPI.getById - ID:", id);
@@ -340,4 +415,26 @@ export const verificationAPI = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
+};
+
+// Email Verification API
+export const emailVerificationAPI = {
+  verifyCode: async (code: string, language?: string) => {
+    const lang = await AsyncStorage.getItem('app_language') || language || 'fr';
+    return apiRequest("/email-verification/verify-code", {
+      method: "POST",
+      body: JSON.stringify({ code, language: lang }),
+    });
+  },
+  
+  resendCode: async (language?: string) => {
+    const lang = await AsyncStorage.getItem('app_language') || language || 'fr';
+    return apiRequest("/email-verification/resend-code", {
+      method: "POST",
+      body: JSON.stringify({ language: lang }),
+    });
+  },
+  
+  getStatus: () =>
+    apiRequest("/email-verification/status"),
 };

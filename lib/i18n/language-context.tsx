@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { I18nManager } from 'react-native';
 import { translations } from './translations';
 
 type Language = 'fr' | 'ar' | 'en';
@@ -27,14 +26,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       const savedLang = await AsyncStorage.getItem('app_language');
       if (savedLang && (savedLang === 'fr' || savedLang === 'ar' || savedLang === 'en')) {
         setLanguageState(savedLang as Language);
-        const rtl = savedLang === 'ar';
-        setIsRTL(rtl);
-        
-        // Configurer le RTL natif au démarrage
-        if (rtl !== I18nManager.isRTL) {
-          I18nManager.allowRTL(rtl);
-          I18nManager.forceRTL(rtl);
-        }
+        setIsRTL(savedLang === 'ar');
+      } else {
+        setIsRTL(false);
       }
     } catch (error) {
       console.error('Failed to load language:', error);
@@ -45,16 +39,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.setItem('app_language', lang);
       setLanguageState(lang);
-      const rtl = lang === 'ar';
-      setIsRTL(rtl);
-      
-      // Activer le RTL natif pour l'arabe
-      if (rtl !== I18nManager.isRTL) {
-        I18nManager.allowRTL(rtl);
-        I18nManager.forceRTL(rtl);
-        // Note: Un redémarrage de l'app est nécessaire pour appliquer complètement le RTL
-        // Vous pouvez utiliser Updates.reloadAsync() d'expo-updates si nécessaire
-      }
+      setIsRTL(lang === 'ar');
     } catch (error) {
       console.error('Failed to save language:', error);
     }

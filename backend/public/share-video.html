@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vidéo - Buys</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+        
+        p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        .buttons {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 30px;
+            width: 100%;
+        }
+        
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: 14px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn-android {
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+            color: white;
+        }
+        
+        .btn-ios {
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+            color: white;
+        }
+        
+        .btn-icon {
+            width: 24px;
+            height: 24px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="https://i.postimg.cc/2SvChcKf/Logo.png" alt="Buys">
+        </div>
+        
+        <h1 id="title">Ouverture de l'application</h1>
+        <p id="message">Veuillez patienter...</p>
+        
+        <div class="loading" id="loading"></div>
+        
+        <div class="buttons" id="buttons">
+            <a href="https://play.google.com/store/apps/details?id=com.buys.app" class="btn btn-android">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+                </svg>
+                <span>Télécharger sur Play Store</span>
+            </a>
+            <a href="https://apps.apple.com/app/idXXXXXXXXX" class="btn btn-ios">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z"/>
+                </svg>
+                <span>Télécharger sur App Store</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        console.log('🚀 Script démarré');
+        console.log('📍 URL actuelle:', window.location.href);
+        
+        // Extraire l'ID depuis l'URL
+        // Format: /v/20-aB3xK9mP2 (avec token) ou /v/20 (sans token)
+        const pathParts = window.location.pathname.split('/');
+        const lastPart = pathParts[pathParts.length - 1];
+        const videoId = lastPart.includes('-') ? lastPart.split('-')[0] : lastPart;
+        console.log('🎬 Video ID:', videoId, 'URL part:', lastPart);
+        
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isAndroid = /android/i.test(userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+        
+        // Détecter les navigateurs in-app (WhatsApp, Facebook, Instagram, etc.)
+        const isInAppBrowser = /FBAN|FBAV|Instagram|WhatsApp|Messenger|Line|Snapchat|Twitter/i.test(userAgent);
+        console.log('📱 Android:', isAndroid, 'iOS:', isIOS, 'InApp:', isInAppBrowser);
+        
+        const deepLink = `buys://share/video/${videoId}`;
+        const currentUrl = window.location.href;
+        const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.buys.app';
+        const appStoreUrl = 'https://apps.apple.com/app/idXXXXXXXXX';
+        
+        console.log('🔗 Deep link généré:', deepLink);
+        console.log('🌐 User Agent:', userAgent);
+        
+        // Si ouvert depuis WhatsApp/Facebook, afficher un bouton pour ouvrir dans le navigateur
+        if (isInAppBrowser) {
+            console.log('Navigateur in-app détecté');
+            document.getElementById('title').textContent = 'Ouvrir dans le navigateur';
+            document.getElementById('message').textContent = 'Pour voir cette vidéo, ouvrez le lien dans votre navigateur';
+            document.getElementById('loading').style.display = 'none';
+            
+            // Créer un bouton pour ouvrir dans le navigateur externe
+            const openBrowserBtn = document.createElement('a');
+            openBrowserBtn.className = 'btn btn-android';
+            openBrowserBtn.style.marginTop = '20px';
+            openBrowserBtn.innerHTML = '<span>Ouvrir dans le navigateur</span>';
+            
+            // Sur Android, utiliser intent:// pour forcer le navigateur externe
+            if (isAndroid) {
+                openBrowserBtn.href = 'intent://' + currentUrl.replace(/^https?:\/\//, '') + '#Intent;scheme=http;package=com.android.chrome;end';
+                openBrowserBtn.onclick = function(e) {
+                    // Fallback: copier l'URL
+                    e.preventDefault();
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(currentUrl).then(function() {
+                            alert('Lien copié ! Collez-le dans Chrome ou votre navigateur.');
+                        });
+                    } else {
+                        prompt('Copiez ce lien et ouvrez-le dans votre navigateur:', currentUrl);
+                    }
+                };
+            } else {
+                openBrowserBtn.href = currentUrl;
+                openBrowserBtn.target = '_system';
+            }
+            
+            document.querySelector('.container').appendChild(openBrowserBtn);
+            return;
+        }
+        
+        // Essayer d'ouvrir l'app immédiatement
+        try {
+            console.log('🚀 Tentative ouverture app avec:', deepLink);
+            
+            // Créer un iframe invisible pour iOS (meilleure compatibilité)
+            if (isIOS) {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = deepLink;
+                document.body.appendChild(iframe);
+                setTimeout(() => document.body.removeChild(iframe), 1000);
+            } else {
+                // Android: utiliser window.location directement
+                window.location.href = deepLink;
+            }
+            
+            console.log('✅ Commande envoyée');
+        } catch (e) {
+            console.error('❌ Erreur ouverture app:', e);
+        }
+        
+        // Rediriger vers le store après 2.5 secondes
+        console.log('⏱️ Timer démarré pour redirection store (2.5s)');
+        setTimeout(function() {
+            console.log('🏪 Redirection vers store...');
+            document.getElementById('title').textContent = "L'app n'est pas installée ?";
+            document.getElementById('message').textContent = 'Téléchargez Buys pour voir cette vidéo';
+            
+            setTimeout(function() {
+                if (isAndroid) {
+                    console.log('📱 Redirection Play Store');
+                    window.location.href = playStoreUrl;
+                } else if (isIOS) {
+                    console.log('🍎 Redirection App Store');
+                    window.location.href = appStoreUrl;
+                } else {
+                    console.log('💻 Desktop détecté');
+                    document.getElementById('title').textContent = 'Télécharger Buys';
+                    document.getElementById('message').textContent = 'Choisissez votre plateforme';
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('buttons').style.display = 'flex';
+                }
+            }, 500);
+        }, 2500);
+    </script>
+</body>
+</html>

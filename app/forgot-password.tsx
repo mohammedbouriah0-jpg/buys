@@ -6,12 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from "react-native";
+import { useKeyboardScroll } from "@/hooks/useKeyboardScroll";
 import { useRouter } from "expo-router";
-import { X, Mail, Lock } from "lucide-react-native";
+import { X, Mail, Lock, Eye, EyeOff } from "lucide-react-native";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { API_URL } from "@/config";
 
@@ -24,6 +23,18 @@ export default function ForgotPassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    hasMinLength: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+    hasSymbol: false,
+  });
+  
+  // Keyboard scroll
+  const { scrollViewRef, keyboardHeight, scrollToInput } = useKeyboardScroll();
 
   const handleSendCode = async () => {
     if (!email) {
@@ -54,19 +65,33 @@ export default function ForgotPassword() {
     }
   };
 
+  // Valider la force du mot de passe
+  const validatePassword = (pwd: string) => {
+    setPasswordStrength({
+      hasMinLength: pwd.length >= 8,
+      hasUpperCase: /[A-Z]/.test(pwd),
+      hasLowerCase: /[a-z]/.test(pwd),
+      hasNumber: /[0-9]/.test(pwd),
+      hasSymbol: /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+    });
+  };
+
   const handleResetPassword = async () => {
     if (!code || !newPassword || !confirmPassword) {
       Alert.alert(t("error"), t("fillAllFields"));
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert(t("error"), t("passwordMinLength"));
+    if (newPassword !== confirmPassword) {
+      Alert.alert(t("error"), t("passwordsDoNotMatch"));
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      Alert.alert(t("error"), t("passwordsDoNotMatch"));
+    // Vérifier la force du mot de passe
+    if (!passwordStrength.hasMinLength || !passwordStrength.hasUpperCase || 
+        !passwordStrength.hasLowerCase || !passwordStrength.hasNumber || 
+        !passwordStrength.hasSymbol) {
+      Alert.alert(t("error"), t("passwordTooWeak"));
       return;
     }
 
@@ -97,11 +122,13 @@ export default function ForgotPassword() {
   };
 
   return (
-    <KeyboardAvoidingView
+    <ScrollView
+      ref={scrollViewRef}
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      contentContainerStyle={{ paddingBottom: keyboardHeight + 50 }}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={[styles.header, isRTL && styles.headerRTL]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
@@ -140,6 +167,7 @@ export default function ForgotPassword() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     placeholderTextColor="#9ca3af"
+                    onFocus={() => scrollToInput(300)}
                   />
                 </View>
               </View>
@@ -195,12 +223,58 @@ export default function ForgotPassword() {
                     style={[styles.input, isRTL && styles.inputRTL]}
                     placeholder={t("enterNewPassword")}
                     value={newPassword}
-                    onChangeText={setNewPassword}
-                    secureTextEntry
+                    onChangeText={(text) => {
+                      setNewPassword(text);
+                      validatePassword(text);
+                    }}
+                    secureTextEntry={!showNewPassword}
                     placeholderTextColor="#9ca3af"
                     autoCapitalize="none"
                   />
+                  <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                    {showNewPassword ? (
+                      <EyeOff size={20} color="#9ca3af" />
+                    ) : (
+                      <Eye size={20} color="#9ca3af" />
+                    )}
+                  </TouchableOpacity>
                 </View>
+                
+                {/* Indicateurs de force du mot de passe */}
+                {newPassword.length > 0 && (
+                  <View style={styles.passwordStrength}>
+                    <View style={styles.strengthItem}>
+                      <Text style={passwordStrength.hasMinLength ? styles.checkValid : styles.checkInvalid}>
+                        {passwordStrength.hasMinLength ? "✓" : "✗"}
+                      </Text>
+                      <Text style={styles.strengthText}>{t("minLength8")}</Text>
+                    </View>
+                    <View style={styles.strengthItem}>
+                      <Text style={passwordStrength.hasUpperCase ? styles.checkValid : styles.checkInvalid}>
+                        {passwordStrength.hasUpperCase ? "✓" : "✗"}
+                      </Text>
+                      <Text style={styles.strengthText}>{t("oneUpperCase")}</Text>
+                    </View>
+                    <View style={styles.strengthItem}>
+                      <Text style={passwordStrength.hasLowerCase ? styles.checkValid : styles.checkInvalid}>
+                        {passwordStrength.hasLowerCase ? "✓" : "✗"}
+                      </Text>
+                      <Text style={styles.strengthText}>{t("oneLowerCase")}</Text>
+                    </View>
+                    <View style={styles.strengthItem}>
+                      <Text style={passwordStrength.hasNumber ? styles.checkValid : styles.checkInvalid}>
+                        {passwordStrength.hasNumber ? "✓" : "✗"}
+                      </Text>
+                      <Text style={styles.strengthText}>{t("oneNumber")}</Text>
+                    </View>
+                    <View style={styles.strengthItem}>
+                      <Text style={passwordStrength.hasSymbol ? styles.checkValid : styles.checkInvalid}>
+                        {passwordStrength.hasSymbol ? "✓" : "✗"}
+                      </Text>
+                      <Text style={styles.strengthText}>{t("oneSymbol")}</Text>
+                    </View>
+                  </View>
+                )}
               </View>
 
               {/* Confirm Password */}
@@ -213,12 +287,24 @@ export default function ForgotPassword() {
                     placeholder={t("confirmNewPassword")}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
-                    secureTextEntry
+                    secureTextEntry={!showConfirmPassword}
                     placeholderTextColor="#9ca3af"
                     autoCapitalize="none"
                   />
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    {showConfirmPassword ? (
+                      <EyeOff size={20} color="#9ca3af" />
+                    ) : (
+                      <Eye size={20} color="#9ca3af" />
+                    )}
+                  </TouchableOpacity>
                 </View>
-                <Text style={[styles.hint, isRTL && styles.textRTL]}>{t("minimumCharacters")}</Text>
+                {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                  <Text style={styles.errorText}>{t("passwordsDoNotMatch")}</Text>
+                )}
+                {confirmPassword.length > 0 && newPassword === confirmPassword && (
+                  <Text style={styles.successText}>✓ {t("passwordsMatch")}</Text>
+                )}
               </View>
 
               {/* Submit Button */}
@@ -242,7 +328,6 @@ export default function ForgotPassword() {
           )}
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
   );
 }
 
@@ -369,5 +454,38 @@ const styles = StyleSheet.create({
   textRTL: {
     textAlign: "right",
     writingDirection: "rtl",
+  },
+  passwordStrength: {
+    marginTop: 8,
+    gap: 4,
+  },
+  strengthItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  strengthText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  checkValid: {
+    color: "#10b981",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  checkInvalid: {
+    color: "#ef4444",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  successText: {
+    color: "#10b981",
+    fontSize: 12,
+    marginTop: 4,
   },
 });

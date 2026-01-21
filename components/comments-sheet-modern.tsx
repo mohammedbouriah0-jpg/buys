@@ -16,7 +16,7 @@ import {
 import { X, Heart, Send, MessageCircle, CornerDownRight } from "lucide-react-native";
 import type { Video } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth-context";
-import { videosAPI } from "@/lib/api";
+import { videosAPI, getMediaUrl } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 interface CommentsSheetProps {
@@ -31,27 +31,62 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalComments, setTotalComments] = useState(0);
 
   useEffect(() => {
     if (open && video.id) {
-      loadComments();
+      // Reset state when opening
+      setComments([]);
+      setPage(1);
+      setHasMore(true);
+      loadComments(1, true);
     }
   }, [open, video.id]);
 
-  const loadComments = async () => {
-    setLoading(true);
+  const loadComments = async (pageNum: number = 1, reset: boolean = false) => {
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     try {
-      const data = await videosAPI.getComments(video.id.toString());
-      setComments(data);
+      const data = await videosAPI.getComments(video.id.toString(), pageNum, 10);
+      // Handle both old format (array) and new format (object with comments)
+      if (Array.isArray(data)) {
+        setComments(reset ? data : [...comments, ...data]);
+        setHasMore(false);
+        setTotalComments(data.length);
+      } else {
+        setComments(reset ? data.comments : [...comments, ...data.comments]);
+        setHasMore(data.hasMore);
+        setTotalComments(data.total);
+        setPage(pageNum);
+      }
     } catch (error) {
       console.error("Error loading comments:", error);
-      setComments([]);
+      if (reset) setComments([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (event: any) => {
+    if (loadingMore || !hasMore) return;
+    
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 50;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+    
+    if (isCloseToBottom) {
+      loadComments(page + 1, false);
     }
   };
 
@@ -67,7 +102,7 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
       );
       
       // Reload comments to get updated structure
-      await loadComments();
+      await loadComments(1, true);
       setNewComment("");
       setReplyingTo(null);
     } catch (error) {
@@ -97,6 +132,12 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
     setNewComment(`@${userName} `);
   };
 
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num?.toString() || "0";
+  };
+
   const renderComment = (comment: any, isReply = false) => {
     const isLiked = comment.liked || false;
     const likesCount = comment.likes_count || 0;
@@ -115,7 +156,7 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
         <View style={[styles.commentItem, isReply && styles.replyItem]}>
           {/* Avatar / Logo */}
           {hasAvatar ? (
-            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
+            <Image source={{ uri: getMediaUrl(displayAvatar) }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
@@ -149,7 +190,7 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
                 />
                 {likesCount > 0 && (
                   <Text style={[styles.actionText, isLiked && styles.actionTextLiked]}>
-                    {likesCount}
+                    {formatNumber(likesCount)}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -228,7 +269,7 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
             <View style={styles.headerLeft}>
               <MessageCircle size={20} color="#000" />
               <Text style={styles.headerTitle}>
-                {comments.length} {t("comments")}
+                {totalComments} {t("comments")}
               </Text>
             </View>
             <TouchableOpacity onPress={() => onOpenChange(false)} style={styles.closeButton}>
@@ -237,7 +278,12 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
           </View>
 
           {/* Comments List */}
-          <ScrollView style={styles.commentsList} contentContainerStyle={styles.commentsContent}>
+          <ScrollView 
+            style={styles.commentsList} 
+            contentContainerStyle={styles.commentsContent}
+            onScroll={handleScroll}
+            scrollEventThrottle={400}
+          >
             {loading ? (
               <View style={styles.loadingState}>
                 <ActivityIndicator size="large" color="#000" />
@@ -249,7 +295,14 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
                 <Text style={styles.emptySubtext}>{t("beFirstToComment")}</Text>
               </View>
             ) : (
-              comments.map((comment) => renderComment(comment))
+              <>
+                {comments.map((comment) => renderComment(comment))}
+                {loadingMore && (
+                  <View style={styles.loadingMore}>
+                    <ActivityIndicator size="small" color="#000" />
+                  </View>
+                )}
+              </>
             )}
           </ScrollView>
 
@@ -267,7 +320,7 @@ export function CommentsSheetModern({ open, onOpenChange, video }: CommentsSheet
             
             <View style={styles.inputRow}>
               {((user as any)?.shopLogo || (user as any)?.avatar) ? (
-                <Image source={{ uri: (user as any)?.shopLogo || (user as any)?.avatar }} style={styles.inputAvatar} />
+                <Image source={{ uri: getMediaUrl((user as any)?.shopLogo || (user as any)?.avatar) }} style={styles.inputAvatar} />
               ) : (
                 <View style={styles.inputAvatarPlaceholder}>
                   <Text style={styles.inputAvatarText}>{((user as any)?.shopName || user?.name)?.charAt(0)}</Text>
@@ -357,6 +410,10 @@ const styles = StyleSheet.create({
   loadingState: {
     alignItems: "center",
     paddingVertical: 40,
+  },
+  loadingMore: {
+    alignItems: "center",
+    paddingVertical: 16,
   },
   emptyState: {
     alignItems: "center",

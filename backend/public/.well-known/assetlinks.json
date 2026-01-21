@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.buys.app",
+      "sha256_cert_fingerprints": [
+        "2F:7C:90:D1:95:2C:4D:C3:D3:6E:2C:7C:BD:FC:9F:3C:D3:E7:D0:33:C6:0D:09:49:FF:60:05:7B:D3:A3:F5:4F",
+        "91:23:D8:63:82:2E:DB:92:A8:F6:D1:4F:CA:F4:B4:6D:D0:81:10:5D:89:5F:38:30:A4:85:ED:CB:66:2C:53:C9"
+      ]
+    }
+  }
+]

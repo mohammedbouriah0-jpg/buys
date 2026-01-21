@@ -11,17 +11,19 @@ import {
   Animated,
   ActivityIndicator,
 } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import { Heart, MessageCircle, ShoppingBag, Pause, Play, Eye, Wifi, WifiOff } from "lucide-react-native";
 import type { Video as VideoType, Shop, Product } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth-context";
 import { CommentsSheetModern } from "./comments-sheet-modern";
-import { videosAPI, shopsAPI } from "@/lib/api";
+import { ShareButton } from "./share-button";
+import { videosAPI, shopsAPI, getMediaUrl } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { AdaptiveQualityManager, VideoQuality, QUALITY_SETTINGS } from "@/lib/adaptive-video-simple";
 
-const { height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 // Cache global pour les vidéos chargées
 const videoCache = new Set<string>();
@@ -32,10 +34,11 @@ interface VideoCardProps {
   products: Product[];
   isActive: boolean;
   shouldLoad?: boolean;
+  videoHeight?: number;
   onSubscriptionChange?: (shopId: number, subscribed: boolean) => void;
 }
 
-export function VideoCard({ video, shop, products, isActive, shouldLoad = true, onSubscriptionChange }: VideoCardProps) {
+export function VideoCard({ video, shop, products, isActive, shouldLoad = true, videoHeight, onSubscriptionChange }: VideoCardProps) {
   const { isAuthenticated } = useAuth();
   const { t, isRTL } = useLanguage();
   const router = useRouter();
@@ -51,7 +54,14 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('medium');
   const [showQualityIndicator, setShowQualityIndicator] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const trackWidthRef = useRef(0);
+  const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
   const likeScale = useRef(new Animated.Value(1)).current;
   const likeRotate = useRef(new Animated.Value(0)).current;
   const subscribeScale = useRef(new Animated.Value(1)).current;
@@ -87,7 +97,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
     // Si pas de qualités multiples disponibles, toujours utiliser l'URL originale
     if (!hasMultipleQualities) {
       console.log('📹 Pas de qualités multiples, utilisation de l\'URL originale:', fallbackUrl);
-      return fallbackUrl;
+      return getMediaUrl(fallbackUrl);
     }
     
     // Sélectionner selon la qualité demandée avec fallback intelligent
@@ -112,7 +122,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
     
     const finalUrl = selectedUrl || fallbackUrl;
     console.log(`🎬 Qualité: ${videoQuality}, URL: ${finalUrl ? finalUrl.substring(finalUrl.lastIndexOf('/') + 1) : 'NONE'}`);
-    return finalUrl;
+    return getMediaUrl(finalUrl);
   }, [video, videoQuality, hasMultipleQualities]);
   
   const videoId = videoUrl || video.id.toString();
@@ -195,6 +205,13 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
       setIsVideoReady(true);
     }
   }, [video.id, (video as any).liked, video.likes, (video as any).likes_count, (video as any).subscribed, isCached, videoUrl]);
+  
+  // Réinitialiser la progression uniquement quand on change de vidéo
+  useEffect(() => {
+    setProgress(0);
+    setCurrentTime(0);
+    progressAnim.setValue(0);
+  }, [video.id]);
 
   // Incrémenter les vues quand la vidéo devient active
   useEffect(() => {
@@ -218,6 +235,11 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
         videoRef.current.setPositionAsync(0);
         videoRef.current.playAsync();
         setIsPlaying(true);
+        
+        // Réinitialiser la progression
+        setProgress(0);
+        setCurrentTime(0);
+        progressAnim.setValue(0);
       } else {
         videoRef.current.pauseAsync();
         setIsPlaying(false);
@@ -255,6 +277,9 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
       if (videoUrl) {
         videoCache.add(videoId);
       }
+      
+      // Définir la durée de la vidéo
+      setDuration(status.durationMillis || 0);
       
       // Animation de disparition du spinner
       Animated.timing(spinnerOpacity, {
@@ -362,7 +387,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
       return;
     }
 
-    // Animation du bouton subscribe
+
     Animated.sequence([
       Animated.spring(subscribeScale, {
         toValue: 0.9,
@@ -410,13 +435,41 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
   };
 
   const formatNumber = (num: number) => {
-    if (num > 999) return `${(num / 1000).toFixed(1)}k`;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num?.toString() || "0";
+  };
+
+
+
+  // Formater le temps en mm:ss
+  const formatTime = (milliseconds: number) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Gérer le tap sur la timeline
+  const handleTimelinePress = async (event: any) => {
+    if (!videoRef.current || !duration) return;
+    
+    const { locationX } = event.nativeEvent;
+    const newProgress = Math.max(0, Math.min(1, locationX / trackWidthRef.current));
+    const newPosition = newProgress * duration;
+    
+    setIsSeeking(true);
+    try {
+      await videoRef.current.setPositionAsync(newPosition);
+    } catch (error) {
+      console.error('Seek error:', error);
+    }
+    setIsSeeking(false);
   };
 
   return (
     <>
-      <View style={styles.container}>
+      <View style={[styles.container, videoHeight ? { height: videoHeight } : {}]}>
         <Pressable 
           style={styles.videoContainer} 
           onPress={handleVideoPress}
@@ -427,7 +480,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
               return (
                 <Image
                   source={{
-                    uri: video.thumbnail || "https://via.placeholder.com/400x600",
+                    uri: getMediaUrl(video.thumbnail) || "https://via.placeholder.com/400x600",
                   }}
                   style={styles.image}
                   resizeMode="cover"
@@ -441,7 +494,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
                   {/* Thumbnail en arrière-plan pendant le chargement */}
                   {isLoading && video.thumbnail && (
                     <Image
-                      source={{ uri: video.thumbnail }}
+                      source={{ uri: getMediaUrl(video.thumbnail) }}
                       style={styles.image}
                       resizeMode="cover"
                     />
@@ -451,7 +504,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
                     ref={videoRef}
                     source={{ uri: videoUrl }}
                     style={styles.video}
-                    resizeMode={ResizeMode.CONTAIN}
+                    resizeMode={ResizeMode.COVER}
                     shouldPlay={isActive && isVideoReady}
                     isLooping
                     volume={1.0}
@@ -460,6 +513,22 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
                     onLoad={handleVideoLoad}
                     onPlaybackStatusUpdate={(status) => {
                       qualityManager.current?.onPlaybackStatusUpdate(status);
+                      
+                      // Mettre à jour la progression et le temps
+                      if (status.isLoaded && status.durationMillis && !isSeeking) {
+                        const currentProgress = Math.max(0, Math.min(1, status.positionMillis / status.durationMillis));
+                        setProgress(currentProgress);
+                        setCurrentTime(status.positionMillis);
+                        
+                        // Animer la barre de progression seulement si la vidéo est active
+                        if (isActive) {
+                          Animated.timing(progressAnim, {
+                            toValue: currentProgress,
+                            duration: 100,
+                            useNativeDriver: false,
+                          }).start();
+                        }
+                      }
                     }}
                     onReadyForDisplay={() => {
                       console.log("📺 Video ready for display:", video.id);
@@ -471,7 +540,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
               return (
                 <Image
                   source={{
-                    uri: video.thumbnail || "https://via.placeholder.com/400x600",
+                    uri: getMediaUrl(video.thumbnail) || "https://via.placeholder.com/400x600",
                   }}
                   style={styles.image}
                   resizeMode="cover"
@@ -523,19 +592,80 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
               </View>
             </Animated.View>
           )}
+
         </Pressable>
 
         <View style={styles.gradient} />
 
+        {/* Timeline moderne style TikTok - Fixée en bas au-dessus du contenu */}
+        {isVideoReady && duration > 0 && (
+          <View style={styles.timelineContainer}>
+            <View style={styles.timelineWrapper}>
+              {/* Barre de progression */}
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={handleTimelinePress}
+                style={styles.timelineTrack}
+                onLayout={(event) => {
+                  trackWidthRef.current = event.nativeEvent.layout.width;
+                }}
+              >
+                <View style={styles.timelineBackground}>
+                  <Animated.View 
+                    style={[
+                      styles.timelineProgress,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]} 
+                  />
+                  {/* Point de progression */}
+                  <Animated.View
+                    style={[
+                      styles.progressDot,
+                      {
+                        left: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+              </TouchableOpacity>
+              
+              {/* Temps actuel et durée - à droite de la barre */}
+              <View style={styles.timeLabels}>
+                <Text style={styles.timeText}>
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={[styles.content, isRTL && styles.contentRTL]}>
           <View style={[styles.leftContent, isRTL && styles.leftContentRTL]}>
             <View style={styles.shopInfoRow}>
-              <Link href={`/shop/${shop.id}`} asChild>
-                <TouchableOpacity style={[styles.shopInfo, isRTL && styles.shopInfoRTL]}>
+                <TouchableOpacity 
+                  style={[styles.shopInfo, isRTL && styles.shopInfoRTL]}
+                  onPress={() => {
+                    try {
+                      if (shop.id) {
+                        router.push(`/shop/${shop.id}`);
+                      }
+                    } catch (error) {
+                      console.error('Navigation to shop failed:', error);
+                    }
+                  }}
+                >
                   {/* Avatar - toujours en premier dans le DOM */}
                   <View style={styles.avatarWrapper}>
                     {shop.avatar ? (
-                      <Image source={{ uri: shop.avatar }} style={styles.avatar} />
+                      <Image source={{ uri: getMediaUrl(shop.avatar) }} style={styles.avatar} />
                     ) : (
                       <View style={[styles.avatar, { backgroundColor: "#666" }]}>
                         <Text
@@ -576,7 +706,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
                             </Animated.View>
                           )}
                           
-                          {shop.verified && (
+                          {!!shop.verified && (
                             <View style={[styles.verifiedBadge, { marginLeft: 0, marginRight: 4 }]}>
                               <Text style={styles.verifiedText}>✓</Text>
                             </View>
@@ -592,7 +722,7 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
                             {shop.name}
                           </Text>
                           
-                          {shop.verified && (
+                          {!!shop.verified && (
                             <View style={styles.verifiedBadge}>
                               <Text style={styles.verifiedText}>✓</Text>
                             </View>
@@ -626,7 +756,6 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
                     </Text>
                   </View>
                 </TouchableOpacity>
-              </Link>
             </View>
 
             {video.title && (
@@ -654,36 +783,55 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
             )}
 
             {products.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.productsScroll}
-                contentContainerStyle={isRTL && { flexDirection: 'row-reverse' }}
+              <View
+                style={[
+                  styles.productsContainer,
+                  isRTL ? { alignSelf: "flex-end" } : { alignSelf: "flex-start" },
+                ]}
               >
-                {products.map((product) => (
-                  <Link
-                    key={product.id}
-                    href={`/product/${product.id}`}
-                    asChild
-                  >
-                    <TouchableOpacity style={styles.productCard}>
-                      {product.image && (
-                        <Image
-                          source={{ uri: product.image }}
-                          style={styles.productImage}
-                          resizeMode="cover"
-                        />
-                      )}
-                      <Text style={[styles.productName, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
-                        {product.name}
-                      </Text>
-                      <Text style={[styles.productPrice, isRTL && { textAlign: 'right' }]}>
-                        {product.price?.toLocaleString() || product.price} DA
-                      </Text>
-                    </TouchableOpacity>
-                  </Link>
-                ))}
-              </ScrollView>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ flexGrow: 0 }}
+                  contentContainerStyle={{ alignItems: 'flex-start' }}
+                >
+                  {products.map((product) => {
+                    console.log('🛍️ Product:', product.name, product.price);
+                    return (
+                      <TouchableOpacity 
+                        key={product.id}
+                        style={styles.productCard}
+                        onPress={() => {
+                          try {
+                            if (product.id) {
+                              router.push(`/product/${product.id}`);
+                            }
+                          } catch (error) {
+                            console.error('Navigation to product failed:', error);
+                          }
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        {product.image && (
+                          <Image
+                            source={{ uri: getMediaUrl(product.image) }}
+                            style={styles.productImage}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={styles.productInfo}>
+                          <Text style={styles.productName} numberOfLines={1}>
+                            {product.name}
+                          </Text>
+                          <Text style={styles.productPrice}>
+                            {product.price?.toLocaleString() || product.price} DA
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
             )}
           </View>
 
@@ -724,13 +872,33 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
               </Text>
             </TouchableOpacity>
 
-            <Link href={`/shop/${shop.id}`} asChild>
-              <TouchableOpacity style={styles.actionButton}>
-                <View style={styles.actionIcon}>
-                  <ShoppingBag size={24} color="#fff" />
-                </View>
-              </TouchableOpacity>
-            </Link>
+            <ShareButton
+              type="video"
+              data={{
+                videoId: Number(video.id),
+                title: video.title,
+                shopName: shop.name,
+              }}
+              size={24}
+              color="#fff"
+            />
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => {
+                try {
+                  if (shop.id) {
+                    router.push(`/shop/${shop.id}`);
+                  }
+                } catch (error) {
+                  console.error('Navigation to shop failed:', error);
+                }
+              }}
+            >
+              <View style={styles.actionIcon}>
+                <ShoppingBag size={24} color="#fff" />
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -747,7 +915,6 @@ export function VideoCard({ video, shop, products, isActive, shouldLoad = true, 
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    height: height,
     backgroundColor: "#000",
   },
   videoContainer: {
@@ -758,6 +925,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   video: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: "100%",
     height: "100%",
     backgroundColor: "#000",
@@ -837,6 +1009,63 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  timelineContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 5,
+    paddingHorizontal: 16,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  timelineWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  timelineTrack: {
+    flex: 1,
+    height: 28,
+    justifyContent: "center",
+  },
+  timelineBackground: {
+    width: "100%",
+    height: 3,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 1.5,
+    overflow: "visible",
+  },
+  timelineProgress: {
+    height: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 1.5,
+  },
+  progressDot: {
+    position: "absolute",
+    top: -3.5,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#fff",
+    marginLeft: -5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  timeLabels: {
+    minWidth: 70,
+  },
+  timeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "right",
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
 
   gradient: {
     position: "absolute",
@@ -850,7 +1079,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 70,
+    bottom: 40,
     flexDirection: "row",
     paddingLeft: 12,
     paddingRight: 12,
@@ -859,14 +1088,14 @@ const styles = StyleSheet.create({
   },
   leftContent: {
     flex: 1,
-    gap: 8,
+    gap: 4,
     justifyContent: "flex-end",
   },
   shopInfoRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 2,
   },
   shopInfo: {
     flexDirection: "row",
@@ -875,14 +1104,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatarWrapper: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
     borderColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
@@ -928,7 +1157,7 @@ const styles = StyleSheet.create({
   },
   shopName: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
@@ -957,24 +1186,24 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   subscribersCount: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
-    fontWeight: "600",
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 11,
+    fontWeight: "500",
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
-    marginTop: 2,
+    marginTop: 0,
   },
 
   viewsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 6,
+    gap: 4,
+    marginTop: 2,
     backgroundColor: "rgba(0,0,0,0.4)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     alignSelf: "flex-start",
   },
   viewsText: {
@@ -987,90 +1216,82 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+    lineHeight: 16,
   },
   description: {
-    color: "rgba(255,255,255,0.95)",
-    fontSize: 13,
-    lineHeight: 17,
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 12,
+    lineHeight: 15,
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+  },
+  productsContainer: {
+    marginTop: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
   },
   productsScroll: {
     flexDirection: "row",
   },
   productCard: {
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 8,
-    padding: 6,
-    width: 75,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 5,
     marginRight: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
   },
   productImage: {
-    width: "100%",
-    height: 60,
-    borderRadius: 6,
-    marginBottom: 4,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    width: 24,
+    height: 24,
+    borderRadius: 3,
+  },
+  productInfo: {
+    marginLeft: 4,
+    justifyContent: "center",
   },
   productName: {
-    color: "#fff",
+    color: "#ffffff",
     fontSize: 9,
     fontWeight: "600",
-    marginBottom: 2,
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    marginBottom: 0,
+    lineHeight: 11,
   },
   productPrice: {
-    color: "#fff",
+    color: "#ffffff",
     fontSize: 10,
     fontWeight: "700",
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   rightActions: {
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     justifyContent: "flex-end",
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   actionButton: {
     alignItems: "center",
-    gap: 4,
+    gap: 2,
   },
   actionIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
   },
   actionText: {
     color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "600",
     textShadowColor: "rgba(0,0,0,0.9)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
@@ -1114,5 +1335,14 @@ const styles = StyleSheet.create({
   textRTL: {
     textAlign: "right",
     writingDirection: "rtl",
+  },
+  productCardRTL: {
+    flexDirection: "row-reverse",
+    marginRight: 0,
+    marginLeft: 6,
+  },
+  productInfoRTL: {
+    marginLeft: 0,
+    marginRight: 4,
   },
 });

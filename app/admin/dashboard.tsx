@@ -91,7 +91,7 @@ export default function AdminDashboard() {
         }
       >
         {/* Actions rapides */}
-        <View className="flex-row mb-6">
+        <View className="flex-row mb-3">
           <TouchableOpacity
             onPress={() => router.push('/admin/verifications')}
             className="flex-1 bg-orange-500 rounded-xl p-4 mr-2"
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
               <View className="bg-white/20 p-3 rounded-full mb-2">
                 <Ionicons name="shield-checkmark" size={24} color="white" />
               </View>
-              <Text className="text-white font-semibold">Vérifications</Text>
+              <Text className="text-white font-semibold text-sm">Vérifications</Text>
               {stats?.pending_verifications > 0 && (
                 <View className="bg-red-500 px-2 py-1 rounded-full mt-1">
                   <Text className="text-white text-xs font-bold">
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
               <View className="bg-white/20 p-3 rounded-full mb-2">
                 <Ionicons name="receipt" size={24} color="white" />
               </View>
-              <Text className="text-white font-semibold">Factures</Text>
+              <Text className="text-white font-semibold text-sm">Factures</Text>
               {stats?.pending_invoices > 0 && (
                 <View className="bg-red-500 px-2 py-1 rounded-full mt-1">
                   <Text className="text-white text-xs font-bold">
@@ -127,6 +127,58 @@ export default function AdminDashboard() {
                   </Text>
                 </View>
               )}
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View className="flex-row mb-6">
+          <TouchableOpacity
+            onPress={() => router.push('/admin/users')}
+            className="flex-1 bg-green-600 rounded-xl p-4 mr-2"
+          >
+            <View className="items-center">
+              <View className="bg-white/20 p-3 rounded-full mb-2">
+                <Ionicons name="people" size={24} color="white" />
+              </View>
+              <Text className="text-white font-semibold text-sm">Gestion des comptes</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/admin/categories')}
+            className="flex-1 bg-purple-500 rounded-xl p-4 ml-2"
+          >
+            <View className="items-center">
+              <View className="bg-white/20 p-3 rounded-full mb-2">
+                <Ionicons name="grid" size={24} color="white" />
+              </View>
+              <Text className="text-white font-semibold text-sm">Catégories</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View className="flex-row mb-6">
+          <TouchableOpacity
+            onPress={() => router.push('/admin/support')}
+            className="flex-1 bg-teal-500 rounded-xl p-4 mr-2"
+          >
+            <View className="items-center">
+              <View className="bg-white/20 p-3 rounded-full mb-2">
+                <Ionicons name="headset" size={24} color="white" />
+              </View>
+              <Text className="text-white font-semibold text-sm">Config Support</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/admin/payment-settings')}
+            className="flex-1 bg-indigo-500 rounded-xl p-4 ml-2"
+          >
+            <View className="items-center">
+              <View className="bg-white/20 p-3 rounded-full mb-2">
+                <Ionicons name="card" size={24} color="white" />
+              </View>
+              <Text className="text-white font-semibold text-sm">Paiements</Text>
             </View>
           </TouchableOpacity>
         </View>

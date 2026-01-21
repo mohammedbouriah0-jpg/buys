@@ -1,0 +1,6 @@
+# Fichiers à ignorer lors du build EAS
+node_modules/react-native-worklets
+*.md
+*.log
+.git
+.vscode

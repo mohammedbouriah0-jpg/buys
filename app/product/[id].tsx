@@ -10,14 +10,36 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Minus, Plus, ShoppingCart } from "lucide-react-native";
+import { ArrowLeft, Minus, Plus, ShoppingCart, ChevronRight } from "lucide-react-native";
 import { useCart } from "@/lib/cart-context";
-import { productsAPI } from "@/lib/api";
+import { productsAPI, getMediaUrl } from "@/lib/api";
 import { Toast } from "@/components/toast-notification";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Helper pour convertir n'importe quelle valeur en string safe
+const safeString = (value: any, fallback: string = ''): string => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'object') {
+    // Si c'est un objet de traduction, prendre la première valeur
+    if (value.fr) return String(value.fr);
+    if (value.en) return String(value.en);
+    if (value.ar) return String(value.ar);
+    return fallback;
+  }
+  return String(value);
+};
+
+const safeNumber = (value: any, fallback: number = 0): number => {
+  if (value === null || value === undefined) return fallback;
+  const num = Number(value);
+  return isNaN(num) ? fallback : num;
+};
 
 export default function ProductPage() {
   const { id } = useLocalSearchParams();
@@ -34,6 +56,7 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [availableStock, setAvailableStock] = useState(0);
   const { t, isRTL } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadProduct();
@@ -41,12 +64,10 @@ export default function ProductPage() {
   
   useEffect(() => {
     if (product?.has_variants && product?.variants) {
-      // Check if we need both options or just one
       const hasSizes = product.variants.some((v: any) => v.size);
       const hasColors = product.variants.some((v: any) => v.color);
       
       if (hasSizes && hasColors) {
-        // Both options required
         if (selectedSize && selectedColor) {
           const variant = product.variants.find(
             (v: any) => v.size === selectedSize && v.color === selectedColor
@@ -54,13 +75,11 @@ export default function ProductPage() {
           setAvailableStock(variant?.stock || 0);
         }
       } else if (hasSizes && !hasColors) {
-        // Only size required
         if (selectedSize) {
           const variant = product.variants.find((v: any) => v.size === selectedSize);
           setAvailableStock(variant?.stock || 0);
         }
       } else if (!hasSizes && hasColors) {
-        // Only color required
         if (selectedColor) {
           const variant = product.variants.find((v: any) => v.color === selectedColor);
           setAvailableStock(variant?.stock || 0);
@@ -97,19 +116,44 @@ export default function ProductPage() {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>{t('productNotFound')}</Text>
+          <Text style={[styles.errorText, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>{safeString(t('productNotFound'), 'Produit non trouvé')}</Text>
           <TouchableOpacity
             style={styles.backToShopButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backToShopButtonText}>{t('back')}</Text>
+            <Text style={styles.backToShopButtonText}>{safeString(t('back'), 'Retour')}</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  // Check if can add to cart
+  // Debug: Log product data to find issues
+  console.log('📦 Product data:', {
+    id: product.id,
+    name: typeof product.name,
+    price: typeof product.price,
+    description: typeof product.description,
+    shop_name: typeof product.shop_name,
+    has_variants: product.has_variants,
+    variants: product.variants?.length || 0
+  });
+
+  // Validation: Ensure product is a valid object
+  if (typeof product !== 'object' || Array.isArray(product)) {
+    console.error('❌ Invalid product data type:', typeof product);
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Erreur de données</Text>
+          <TouchableOpacity style={styles.backToShopButton} onPress={() => router.back()}>
+            <Text style={styles.backToShopButtonText}>Retour</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   const canAddToCart = () => {
     if (!product) return false;
     
@@ -127,7 +171,6 @@ export default function ProductPage() {
   const handleAddToCart = async () => {
     if (!product) return;
     
-    // Check stock availability
     const stockToCheck = product.has_variants ? availableStock : (product.stock || 0);
     if (stockToCheck < quantity) {
       setToastMessage(`⚠️ Stock insuffisant. Disponible: ${stockToCheck}`);
@@ -151,14 +194,12 @@ export default function ProductPage() {
     
     await addItem(productData, quantity, selectedSize || undefined, selectedColor || undefined);
     
-    // Afficher une belle notification
     const message = quantity > 1 
-      ? `✨ ${quantity} ${t('products')} ${t('addToCart')}!`
-      : `✨ ${t('product')} ${t('addToCart')}!`;
+      ? `✨ ${quantity} ${safeString(t('products'), 'produits')} ${safeString(t('addToCart'), 'ajouté')}!`
+      : `✨ ${safeString(t('product'), 'Produit')} ${safeString(t('addToCart'), 'ajouté')}!`;
     setToastMessage(message);
     setShowToast(true);
     
-    // Rediriger après 1.5s
     setTimeout(() => {
       router.push("/(tabs)/panier");
     }, 1500);
@@ -166,7 +207,6 @@ export default function ProductPage() {
 
   return (
     <View style={styles.container}>
-      {/* Header compact */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -180,7 +220,6 @@ export default function ProductPage() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* Galerie d'images compacte */}
         <View style={styles.imageGalleryContainer}>
           <FlatList
             ref={flatListRef}
@@ -205,7 +244,7 @@ export default function ProductPage() {
             }}
             renderItem={({ item }) => (
               <Image
-                source={{ uri: item.image_url }}
+                source={{ uri: getMediaUrl(item.image_url) }}
                 style={styles.productImage}
                 resizeMode="cover"
               />
@@ -213,8 +252,7 @@ export default function ProductPage() {
             keyExtractor={(_, index) => index.toString()}
           />
 
-          {/* Indicateurs minimalistes */}
-          {((product.images && product.images.length > 1) || false) && (
+          {!!(product.images && product.images.length > 1) && (
             <View style={styles.paginationContainer}>
               {(product.images || []).map((_: any, index: number) => (
                 <View
@@ -230,128 +268,140 @@ export default function ProductPage() {
         </View>
 
         <View style={styles.content}>
-          {/* Nom et prix compacts */}
           <View style={styles.mainInfo}>
             <Text style={[styles.productName, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]} numberOfLines={2}>
-              {product.name}
+              {safeString(product.name, 'Produit')}
             </Text>
             <Text style={[styles.productPrice, isRTL && { textAlign: 'right' }]}>
-              {product.price.toLocaleString()} DA
+              {safeNumber(product.price).toLocaleString()} DA
             </Text>
           </View>
 
-          {/* Boutique compacte */}
-          {product.shop_id && (
+          {!!product.shop_id && (
             <Link href={`/shop/${product.shop_id}`} asChild>
-              <TouchableOpacity style={[styles.shopCard, isRTL && { flexDirection: 'row-reverse' }]}>
-                {product.shop_logo && (
-                  <Image
-                    source={{ uri: product.shop_logo }}
-                    style={styles.shopAvatar}
-                  />
-                )}
-                <View style={styles.shopInfo}>
-                  <View style={[styles.shopNameRow, isRTL && { flexDirection: 'row-reverse' }]}>
-                    <Text style={[styles.shopName, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
-                      {product.shop_name || t('shop')}
-                    </Text>
-                    {product.verified === true && (
-                      <View style={styles.verifiedBadge}>
-                        <Text style={styles.verifiedText}>✓</Text>
-                      </View>
-                    )}
-                  </View>
+              <TouchableOpacity 
+                style={[styles.shopCard, isRTL && { flexDirection: 'row-reverse' }]}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.shopLeftSection, isRTL && { flexDirection: 'row-reverse' }]}>
+                  {!!product.shop_logo ? (
+                    <Image
+                      source={{ uri: getMediaUrl(product.shop_logo) }}
+                      style={styles.shopAvatar}
+                    />
+                  ) : (
+                    <View style={[styles.shopAvatar, styles.shopAvatarPlaceholder]}>
+                      <Text style={styles.shopAvatarText}>
+                        {safeString(product.shop_name, 'B').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={[styles.shopName, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
+                    {safeString(product.shop_name, safeString(t('shop'), 'Boutique'))}
+                  </Text>
+                  {product.verified === true && (
+                    <View style={styles.verifiedBadge}>
+                      <Text style={styles.verifiedText}>✓</Text>
+                    </View>
+                  )}
                 </View>
-                <ArrowLeft
-                  size={14}
-                  color="#999"
-                  style={{ transform: [{ rotate: isRTL ? "0deg" : "180deg" }] }}
-                />
+                <View style={[styles.shopRightSection, isRTL && { flexDirection: 'row-reverse' }]}>
+                  <Text style={styles.shopSubtitle}>
+                    {t('viewShop') || 'Voir la boutique'}
+                  </Text>
+                  <ChevronRight
+                    size={14}
+                    color="#3b82f6"
+                    style={isRTL ? { transform: [{ rotate: '180deg' }] } : undefined}
+                  />
+                </View>
               </TouchableOpacity>
             </Link>
           )}
 
-          {/* Description compacte */}
-          {product.description && (
+          {!!product.description && (
             <View style={styles.descriptionCard}>
               <Text style={[styles.description, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]} numberOfLines={3}>
-                {product.description}
+                {safeString(product.description)}
               </Text>
             </View>
           )}
 
-          {/* Variants Selection */}
-          {product.has_variants && product.variants && product.variants.length > 0 && (
+          {!!(product.has_variants && product.variants && product.variants.length > 0) && (
             <View style={styles.variantsContainer}>
-              {/* Size Selection */}
-              {[...new Set(product.variants.map((v: any) => v.size).filter((s: any) => s))].length > 0 && (
-                <>
-                  <Text style={[styles.variantLabel, isRTL && { textAlign: 'right' }]}>{t("option1")}</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.variantScroll}>
-                    {[...new Set(product.variants.map((v: any) => v.size).filter((s: any) => s))].map((size: string) => (
-                      <TouchableOpacity
-                        key={size}
-                        style={[
-                          styles.sizeButton,
-                          selectedSize === size && styles.selectedVariant
-                        ]}
-                        onPress={() => setSelectedSize(size)}
-                      >
-                        <Text style={[
-                          styles.sizeText,
-                          selectedSize === size && styles.selectedVariantText
-                        ]}>
-                          {size}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </>
-              )}
+              {(() => {
+                const sizes: string[] = [...new Set(product.variants.map((v: any) => v.size).filter((s: any) => s && typeof s === 'string'))] as string[];
+                if (sizes.length === 0) return null;
+                return (
+                  <View>
+                    <Text style={[styles.variantLabel, isRTL && { textAlign: 'right' }]}>{safeString(t("option1"), 'Taille')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.variantScroll}>
+                      {sizes.map((size) => (
+                        <TouchableOpacity
+                          key={safeString(size, 'size')}
+                          style={[
+                            styles.sizeButton,
+                            selectedSize === size && styles.selectedVariant
+                          ]}
+                          onPress={() => setSelectedSize(size)}
+                        >
+                          <Text style={[
+                            styles.sizeText,
+                            selectedSize === size && styles.selectedVariantText
+                          ]}>
+                            {safeString(size)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                );
+              })()}
               
-              {/* Color Selection */}
-              {[...new Set(product.variants.map((v: any) => v.color).filter((c: any) => c))].length > 0 && (
-                <>
-                  <Text style={[styles.variantLabel, isRTL && { textAlign: 'right' }]}>{t("option2")}</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.variantScroll}>
-                    {[...new Set(product.variants.map((v: any) => v.color).filter((c: any) => c))].map((color: string) => (
-                      <TouchableOpacity
-                        key={color}
-                        style={[
-                          styles.sizeButton,
-                          selectedColor === color && styles.selectedVariant
-                        ]}
-                        onPress={() => setSelectedColor(color)}
-                      >
-                        <Text style={[
-                          styles.sizeText,
-                          selectedColor === color && styles.selectedVariantText
-                        ]}>
-                          {color}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </>
-              )}
+              {(() => {
+                const colors: string[] = [...new Set(product.variants.map((v: any) => v.color).filter((c: any) => c && typeof c === 'string'))] as string[];
+                if (colors.length === 0) return null;
+                return (
+                  <View>
+                    <Text style={[styles.variantLabel, isRTL && { textAlign: 'right' }]}>{safeString(t("option2"), 'Couleur')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.variantScroll}>
+                      {colors.map((color) => (
+                        <TouchableOpacity
+                          key={safeString(color, 'color')}
+                          style={[
+                            styles.sizeButton,
+                            selectedColor === color && styles.selectedVariant
+                          ]}
+                          onPress={() => setSelectedColor(color)}
+                        >
+                          <Text style={[
+                            styles.sizeText,
+                            selectedColor === color && styles.selectedVariantText
+                          ]}>
+                            {safeString(color)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                );
+              })()}
               
-              {/* Stock Info */}
-              {(selectedSize || selectedColor) && (
+              {!!(selectedSize || selectedColor) && (
                 <View style={styles.stockBadge}>
                   <Text style={[styles.stockText, isRTL && { textAlign: 'right' }]}>
-                    <Text>{t('inStock')}: {availableStock}</Text>
+                    {safeString(t('inStock'), 'En stock')}: {safeNumber(availableStock)}
                   </Text>
                 </View>
               )}
             </View>
           )}
 
-          {/* Stock et quantité en ligne - Only show for non-variant products */}
           {!product.has_variants && (
             <View style={styles.actionsRow}>
               <View style={styles.stockBadge}>
                 <Text style={[styles.stockText, isRTL && { textAlign: 'right' }]}>
-                  {product.stock || 0} {t('inStock')}
+                  {safeNumber(availableStock)} {safeString(t('inStock'), 'en stock')}
                 </Text>
               </View>
 
@@ -366,29 +416,28 @@ export default function ProductPage() {
                 >
                   <Minus size={16} color={quantity <= 1 ? "#ccc" : "#000"} />
                 </TouchableOpacity>
-                <Text style={styles.quantity}>{quantity}</Text>
+                <Text style={styles.quantity}>{safeString(quantity, '1')}</Text>
                 <TouchableOpacity
                   onPress={() =>
-                    setQuantity(Math.min(product.stock || 0, quantity + 1))
+                    setQuantity(Math.min(availableStock, quantity + 1))
                   }
-                  disabled={quantity >= (product.stock || 0)}
+                  disabled={quantity >= availableStock}
                   style={[
                     styles.quantityButton,
-                    quantity >= (product.stock || 0) &&
+                    quantity >= availableStock &&
                       styles.quantityButtonDisabled,
                   ]}
                 >
                   <Plus
                     size={16}
-                    color={quantity >= (product.stock || 0) ? "#ccc" : "#000"}
+                    color={quantity >= availableStock ? "#ccc" : "#000"}
                   />
                 </TouchableOpacity>
               </View>
             </View>
           )}
           
-          {/* Quantity control for variant products */}
-          {product.has_variants && (selectedSize || selectedColor) && (
+          {!!(product.has_variants && (selectedSize || selectedColor)) && (
             <View style={styles.actionsRow}>
               <View style={styles.quantityControl}>
                 <TouchableOpacity
@@ -401,7 +450,7 @@ export default function ProductPage() {
                 >
                   <Minus size={16} color={quantity <= 1 ? "#ccc" : "#000"} />
                 </TouchableOpacity>
-                <Text style={styles.quantity}>{quantity}</Text>
+                <Text style={styles.quantity}>{safeString(quantity, '1')}</Text>
                 <TouchableOpacity
                   onPress={() =>
                     setQuantity(Math.min(availableStock, quantity + 1))
@@ -424,24 +473,22 @@ export default function ProductPage() {
         </View>
       </ScrollView>
 
-      {/* Footer compact */}
-      <View style={styles.footer}>
-        {/* Warning message if options not selected */}
-        {!canAddToCart() && product.has_variants && (
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 16, 32) }]}>
+        {!!(!canAddToCart() && product.has_variants) && (
           <View style={styles.warningBanner}>
             <View style={styles.warningIcon}>
               <Text style={styles.warningIconText}>👆</Text>
             </View>
             <Text style={styles.warningText}>
-              {t('selectOptionsFirst')}
+              {safeString(t('selectOptionsFirst'), 'Sélectionnez les options')}
             </Text>
           </View>
         )}
         
         <View style={styles.priceRow}>
-          <Text style={[styles.totalLabel, isRTL && { textAlign: 'right' }]}>{t('total')}</Text>
+          <Text style={[styles.totalLabel, isRTL && { textAlign: 'right' }]}>{safeString(t('total'), 'Total')}</Text>
           <Text style={[styles.totalPrice, isRTL && { textAlign: 'left' }]}>
-            {(product.price * quantity).toLocaleString()} DA
+            {(safeNumber(product.price) * quantity).toLocaleString()} DA
           </Text>
         </View>
         <TouchableOpacity
@@ -454,11 +501,10 @@ export default function ProductPage() {
           disabled={!canAddToCart()}
         >
           <ShoppingCart size={18} color="#fff" />
-          <Text style={styles.addButtonText}>{t('addToCartButton')}</Text>
+          <Text style={styles.addButtonText}>{safeString(t('addToCartButton'), 'Ajouter au panier')}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Toast Notification */}
       <Toast
         visible={showToast}
         message={toastMessage}
@@ -548,43 +594,62 @@ const styles = StyleSheet.create({
   shopCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    padding: 8,
-    backgroundColor: "#fafafa",
-    borderRadius: 8,
+    justifyContent: "space-between",
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: "#e5e7eb",
   },
-  shopAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#e5e5e5",
-  },
-  shopInfo: {
-    flex: 1,
-  },
-  shopNameRow: {
+  shopLeftSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
+    gap: 8,
+    flex: 1,
+  },
+  shopRightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  shopAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+  },
+  shopAvatarPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#3b82f6",
+  },
+  shopAvatarText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#fff",
   },
   shopName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#000",
+    color: "#111827",
+    flexShrink: 1,
+  },
+  shopSubtitle: {
+    fontSize: 12,
+    color: "#3b82f6",
+    fontWeight: "500",
   },
   verifiedBadge: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: "#3b82f6",
     alignItems: "center",
     justifyContent: "center",
   },
   verifiedText: {
     color: "#fff",
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "bold",
   },
   descriptionCard: {
@@ -646,7 +711,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 12,
-    paddingBottom: 16,
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
     backgroundColor: "#fff",
@@ -781,19 +845,5 @@ const styles = StyleSheet.create({
   },
   selectedVariantText: {
     color: "#fff",
-  },
-  colorButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: "#e5e5e5",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  selectedColorBorder: {
-    borderColor: "#000",
-    borderWidth: 3,
   },
 });

@@ -1,9 +1,11 @@
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, Alert, ActivityIndicator } from "react-native"
+import { View, Text, TextInput, TouchableOpacity, Image, Alert, ActivityIndicator, ScrollView } from "react-native"
+import { useKeyboardScroll } from "@/hooks/useKeyboardScroll"
 import { useState, useEffect } from "react"
 import { router } from "expo-router"
 import { useAuth } from "@/lib/auth-context"
 import * as ImagePicker from "expo-image-picker"
 import { X, Camera } from "lucide-react-native"
+import { WilayaSelector } from "@/components/wilaya-selector"
 
 export default function EditProfilePage() {
   const { user } = useAuth()
@@ -14,6 +16,9 @@ export default function EditProfilePage() {
   const [wilaya, setWilaya] = useState("")
   const [avatar, setAvatar] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  
+  // Keyboard scroll
+  const { scrollViewRef, keyboardHeight, scrollToInput } = useKeyboardScroll()
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -106,7 +111,13 @@ export default function EditProfilePage() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 p-4">
+      <ScrollView 
+        ref={scrollViewRef}
+        style={{ flex: 1, padding: 16 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: keyboardHeight + 100 }}
+      >
         {/* Photo de profil */}
         <View className="items-center mb-6">
           <TouchableOpacity onPress={pickImage} className="relative">
@@ -136,6 +147,7 @@ export default function EditProfilePage() {
           onChangeText={setName}
           placeholder="Votre nom"
           className="bg-gray-50 p-4 rounded-xl mb-4"
+          onFocus={() => scrollToInput(200)}
         />
 
         {/* Email (non modifiable) */}
@@ -157,6 +169,7 @@ export default function EditProfilePage() {
           placeholder="Ex: 0555123456"
           keyboardType="phone-pad"
           className="bg-gray-50 p-4 rounded-xl mb-4"
+          onFocus={() => scrollToInput(350)}
         />
 
         {/* Adresse */}
@@ -169,15 +182,15 @@ export default function EditProfilePage() {
           numberOfLines={2}
           className="bg-gray-50 p-4 rounded-xl mb-4"
           style={{ textAlignVertical: 'top' }}
+          onFocus={() => scrollToInput(430)}
         />
 
         {/* Wilaya */}
-        <Text className="text-sm font-semibold text-gray-700 mb-2">Wilaya</Text>
-        <TextInput
+        <WilayaSelector
           value={wilaya}
-          onChangeText={setWilaya}
-          placeholder="Ex: Alger, Oran, Constantine..."
-          className="bg-gray-50 p-4 rounded-xl mb-6"
+          onChange={setWilaya}
+          label="Wilaya"
+          placeholder="Sélectionner votre wilaya"
         />
 
         {/* Type de compte */}

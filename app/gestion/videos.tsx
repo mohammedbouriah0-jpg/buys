@@ -5,6 +5,7 @@ import { videosAPI } from "@/lib/api"
 import { Video, ResizeMode } from "expo-av"
 import { ArrowLeft, Trash2, Eye, Heart, MessageCircle, Plus, Film, Edit3 } from "lucide-react-native"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { VerificationGuard } from "@/components/verification-guard"
 
 interface VideoItem {
   id: number
@@ -108,53 +109,128 @@ export default function VideosManagementPage() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white pt-12 pb-4 px-5 border-b border-gray-100">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1">
-            <TouchableOpacity onPress={() => router.back()} className="mr-4">
-              <ArrowLeft size={24} color="#000" />
+    <VerificationGuard>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      {/* Header moderne */}
+      <View style={{
+        backgroundColor: '#ffffff',
+        paddingTop: 48,
+        paddingBottom: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 4,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <TouchableOpacity 
+              onPress={() => router.back()}
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: '#f3f4f6',
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 12
+              }}
+            >
+              <ArrowLeft size={20} color="#111827" strokeWidth={2.5} />
             </TouchableOpacity>
             <View>
-              <Text className="text-2xl font-black">{t('myVideos')}</Text>
-              <Text className="text-sm text-gray-500 mt-0.5">{videos.length} {videos.length > 1 ? t('videos') : t('video')}</Text>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827' }}>
+                {t('myVideos')}
+              </Text>
+              <Text style={{ fontSize: 13, color: '#6b7280', fontWeight: '500', marginTop: 2 }}>
+                {videos.length} {videos.length > 1 ? t('videos') : t('video')}
+              </Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={() => router.push("/gestion/add-video")}
-            className="bg-black rounded-full w-12 h-12 items-center justify-center"
+            style={{
+              backgroundColor: '#000000',
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
           >
-            <Plus size={24} color="#fff" strokeWidth={2.5} />
+            <Plus size={22} color="#fff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Filtres */}
+      {/* Filtres modernes */}
       {videos.length > 0 && (
-        <View className="bg-white px-5 py-3 border-b border-gray-100">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
+        <View style={{
+          backgroundColor: '#ffffff',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: '#f3f4f6'
+        }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
             <TouchableOpacity
               onPress={() => setSortBy('recent')}
-              className={`px-4 py-2 rounded-full ${sortBy === 'recent' ? 'bg-black' : 'bg-gray-100'}`}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: sortBy === 'recent' ? '#000000' : '#f3f4f6',
+                marginRight: 8
+              }}
             >
-              <Text className={`text-sm font-bold ${sortBy === 'recent' ? 'text-white' : 'text-gray-600'}`}>
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: sortBy === 'recent' ? '#ffffff' : '#6b7280'
+              }}>
                 {t('mostRecent')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setSortBy('popular')}
-              className={`px-4 py-2 rounded-full ${sortBy === 'popular' ? 'bg-black' : 'bg-gray-100'}`}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: sortBy === 'popular' ? '#000000' : '#f3f4f6',
+                marginRight: 8
+              }}
             >
-              <Text className={`text-sm font-bold ${sortBy === 'popular' ? 'text-white' : 'text-gray-600'}`}>
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: sortBy === 'popular' ? '#ffffff' : '#6b7280'
+              }}>
                 {t('mostPopular')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setSortBy('oldest')}
-              className={`px-4 py-2 rounded-full ${sortBy === 'oldest' ? 'bg-black' : 'bg-gray-100'}`}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: sortBy === 'oldest' ? '#000000' : '#f3f4f6'
+              }}
             >
-              <Text className={`text-sm font-bold ${sortBy === 'oldest' ? 'text-white' : 'text-gray-600'}`}>
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: sortBy === 'oldest' ? '#ffffff' : '#6b7280'
+              }}>
                 {t('oldest')}
               </Text>
             </TouchableOpacity>
@@ -163,36 +239,69 @@ export default function VideosManagementPage() {
       )}
 
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 20 }}
+        style={{ flex: 1, backgroundColor: '#f9fafb' }}
+        contentContainerStyle={{ padding: 16 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {videos.length === 0 ? (
-          <View className="items-center justify-center py-20">
-            <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-4">
-              <Film size={40} color="#9ca3af" strokeWidth={1.5} />
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
+            <View style={{
+              width: 96,
+              height: 96,
+              backgroundColor: '#f3f4f6',
+              borderRadius: 48,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 20
+            }}>
+              <Film size={48} color="#9ca3af" strokeWidth={2} />
             </View>
-            <Text className="text-gray-900 text-lg font-bold mb-2">{t('noVideo')}</Text>
-            <Text className="text-gray-500 text-center mb-6">{t('startSharingVideos')}</Text>
+            <Text style={{ color: '#111827', fontSize: 20, fontWeight: '800', marginBottom: 8 }}>
+              {t('noVideo')}
+            </Text>
+            <Text style={{ color: '#6b7280', fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 40 }}>
+              {t('startSharingVideos')}
+            </Text>
             <TouchableOpacity
               onPress={() => router.push("/gestion/add-video")}
-              className="bg-black rounded-full px-6 py-3"
+              style={{
+                backgroundColor: '#000000',
+                borderRadius: 24,
+                paddingHorizontal: 24,
+                paddingVertical: 14,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
+              }}
             >
-              <Text className="text-white font-bold">{t('addVideoButton')}</Text>
+              <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 15 }}>
+                {t('addVideoButton')}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View className="gap-3">
+          <View style={{ gap: 10 }}>
             {sortedVideos.map((video) => (
-              <View key={video.id} className="bg-white rounded-2xl overflow-hidden shadow-sm" style={{ position: 'relative' }}>
-                <View className="flex-row">
-                  {/* Thumbnail avec overlay play */}
-                  <View style={{ position: 'relative' }}>
-                    <View className="w-32 h-32 bg-gray-900">
+              <View key={video.id} style={{
+                backgroundColor: '#ffffff',
+                borderRadius: 14,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                elevation: 2,
+              }}>
+                <View style={{ flexDirection: 'row' }}>
+                  {/* Thumbnail compact */}
+                  <View style={{ position: 'relative', width: 110, height: 110 }}>
+                    <View style={{ width: '100%', height: '100%', backgroundColor: '#000000' }}>
                       {video.thumbnail_url ? (
                         <Image
                           source={{ uri: video.thumbnail_url }}
-                          className="w-full h-full"
+                          style={{ width: '100%', height: '100%' }}
                           resizeMode="cover"
                         />
                       ) : video.video_url ? (
@@ -205,31 +314,55 @@ export default function VideosManagementPage() {
                           positionMillis={0}
                         />
                       ) : (
-                        <View className="w-full h-full bg-gray-200 items-center justify-center">
-                          <Film size={32} color="#9ca3af" />
+                        <View style={{ width: '100%', height: '100%', backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' }}>
+                          <Film size={32} color="#6b7280" strokeWidth={2} />
                         </View>
                       )}
                     </View>
-                    {/* Play icon overlay */}
-                    <View className="absolute inset-0 items-center justify-center">
-                      <View className="w-10 h-10 bg-black/40 rounded-full items-center justify-center">
-                        <Film size={20} color="#fff" />
+                    {/* Play overlay compact */}
+                    <View style={{
+                      position: 'absolute',
+                      inset: 0,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(0, 0, 0, 0.15)'
+                    }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        borderRadius: 18,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Film size={18} color="#000000" strokeWidth={2.5} />
                       </View>
                     </View>
                   </View>
 
-                  {/* Content */}
-                  <View className="flex-1 p-4 justify-between">
+                  {/* Content compact */}
+                  <View style={{ flex: 1, padding: 10, justifyContent: 'space-between' }}>
                     <View>
-                      <Text className="text-base font-bold text-gray-900 mb-1.5" numberOfLines={2}>
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '700',
+                        color: '#111827',
+                        marginBottom: 4,
+                        lineHeight: 18
+                      }} numberOfLines={2}>
                         {video.title}
                       </Text>
                       {video.description && (
-                        <Text className="text-xs text-gray-500 mb-2" numberOfLines={1}>
+                        <Text style={{
+                          fontSize: 12,
+                          color: '#6b7280',
+                          marginBottom: 6,
+                          lineHeight: 16
+                        }} numberOfLines={1}>
                           {video.description}
                         </Text>
                       )}
-                      <Text className="text-xs text-gray-400">
+                      <Text style={{ fontSize: 11, color: '#9ca3af', fontWeight: '500' }}>
                         {new Date(video.created_at).toLocaleDateString('fr-FR', {
                           day: 'numeric',
                           month: 'short',
@@ -238,29 +371,53 @@ export default function VideosManagementPage() {
                       </Text>
                     </View>
                     
-                    {/* Stats */}
-                    <View className="flex-row items-center gap-4 mt-2">
-                      <View className="flex-row items-center">
-                        <View className="w-6 h-6 bg-blue-50 rounded-full items-center justify-center mr-1">
-                          <Eye size={12} color="#3b82f6" />
+                    {/* Stats compacts */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{
+                          width: 20,
+                          height: 20,
+                          backgroundColor: '#eff6ff',
+                          borderRadius: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 3
+                        }}>
+                          <Eye size={10} color="#3b82f6" strokeWidth={2.5} />
                         </View>
-                        <Text className="text-gray-700 text-xs font-bold">
+                        <Text style={{ color: '#111827', fontSize: 11, fontWeight: '700' }}>
                           {video.views >= 1000 ? `${(video.views / 1000).toFixed(1)}K` : video.views}
                         </Text>
                       </View>
-                      <View className="flex-row items-center">
-                        <View className="w-6 h-6 bg-red-50 rounded-full items-center justify-center mr-1">
-                          <Heart size={12} color="#ef4444" />
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{
+                          width: 20,
+                          height: 20,
+                          backgroundColor: '#fee2e2',
+                          borderRadius: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 3
+                        }}>
+                          <Heart size={10} color="#ef4444" strokeWidth={2.5} />
                         </View>
-                        <Text className="text-gray-700 text-xs font-bold">
+                        <Text style={{ color: '#111827', fontSize: 11, fontWeight: '700' }}>
                           {video.likes_count >= 1000 ? `${(video.likes_count / 1000).toFixed(1)}K` : video.likes_count}
                         </Text>
                       </View>
-                      <View className="flex-row items-center">
-                        <View className="w-6 h-6 bg-purple-50 rounded-full items-center justify-center mr-1">
-                          <MessageCircle size={12} color="#a855f7" />
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{
+                          width: 20,
+                          height: 20,
+                          backgroundColor: '#faf5ff',
+                          borderRadius: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 3
+                        }}>
+                          <MessageCircle size={10} color="#a855f7" strokeWidth={2.5} />
                         </View>
-                        <Text className="text-gray-700 text-xs font-bold">
+                        <Text style={{ color: '#111827', fontSize: 11, fontWeight: '700' }}>
                           {video.comments_count >= 1000 ? `${(video.comments_count / 1000).toFixed(1)}K` : video.comments_count}
                         </Text>
                       </View>
@@ -268,48 +425,53 @@ export default function VideosManagementPage() {
                   </View>
                 </View>
 
-                {/* Action buttons */}
-                <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, flexDirection: 'row', gap: 8 }}>
-                  {/* Edit button */}
+                {/* Action buttons compacts */}
+                <View style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 10,
+                  flexDirection: 'row',
+                  gap: 5
+                }}>
                   <TouchableOpacity
                     onPress={() => router.push(`/gestion/edit-video/${video.id}`)}
                     activeOpacity={0.8}
-                    style={{ 
-                      width: 36, 
-                      height: 36, 
-                      backgroundColor: '#fff',
-                      borderRadius: 18,
-                      alignItems: 'center', 
+                    style={{
+                      width: 28,
+                      height: 28,
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: 14,
+                      alignItems: 'center',
                       justifyContent: 'center',
                       shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
+                      shadowOffset: { width: 0, height: 1 },
                       shadowOpacity: 0.15,
-                      shadowRadius: 4,
+                      shadowRadius: 3,
                       elevation: 3
                     }}
                   >
-                    <Edit3 size={16} color="#3b82f6" strokeWidth={2} />
+                    <Edit3 size={13} color="#3b82f6" strokeWidth={2.5} />
                   </TouchableOpacity>
                   
-                  {/* Delete button */}
                   <TouchableOpacity
                     onPress={() => handleDelete(video.id, video.title)}
                     activeOpacity={0.8}
-                    style={{ 
-                      width: 36, 
-                      height: 36, 
-                      backgroundColor: '#fff',
-                      borderRadius: 18,
-                      alignItems: 'center', 
+                    style={{
+                      width: 28,
+                      height: 28,
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: 14,
+                      alignItems: 'center',
                       justifyContent: 'center',
                       shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
+                      shadowOffset: { width: 0, height: 1 },
                       shadowOpacity: 0.15,
-                      shadowRadius: 4,
+                      shadowRadius: 3,
                       elevation: 3
                     }}
                   >
-                    <Trash2 size={18} color="#ef4444" strokeWidth={2} />
+                    <Trash2 size={14} color="#ef4444" strokeWidth={2.5} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -318,5 +480,6 @@ export default function VideosManagementPage() {
         )}
       </ScrollView>
     </View>
+    </VerificationGuard>
   )
 }

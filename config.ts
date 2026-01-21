@@ -1,13 +1,15 @@
 // Configuration de l'application
-// ⚠️ IMPORTANT: Changez cette IP quand vous changez de réseau
+// ⚠️ IMPORTANT: Changez cette IP/nom de domaine quand vous changez d'environnement
 export const API_CONFIG = {
-  // Remplacez par votre IP locale (trouvez-la avec ipconfig sur Windows ou ifconfig sur Mac/Linux)
-  SERVER_IP: "31.97.68.10",
-  PORT: "3000",
+  // Domaine de production (avec certificat SSL)
+  SERVER_IP: "buysdz.com",
+  // Mettre true car le serveur a maintenant un certificat SSL
+  USE_HTTPS: true,
 };
 
 // URL de l'API construite automatiquement
-export const API_URL = `http://${API_CONFIG.SERVER_IP}:${API_CONFIG.PORT}/api`;
+const protocol = API_CONFIG.USE_HTTPS ? "https" : "http";
+export const API_URL = `${protocol}://${API_CONFIG.SERVER_IP}/api`;
 
 // Pour trouver votre IP:
 // Windows: Ouvrez CMD et tapez "ipconfig" - cherchez "Adresse IPv4"

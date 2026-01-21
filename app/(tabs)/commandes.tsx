@@ -33,6 +33,7 @@ export default function CommandesPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [totalOrders, setTotalOrders] = useState<number | null>(null)
   const isLoadingRef = React.useRef(false)
 
   const filteredOrders = orders.filter(order => {
@@ -44,8 +45,21 @@ export default function CommandesPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadOrders(true)
+      loadTotalCount()
     }
   }, [isAuthenticated])
+
+  const loadTotalCount = async () => {
+    try {
+      const isShop = user?.type === "shop"
+      const result = isShop 
+        ? await ordersAPI.getShopOrdersCount()
+        : await ordersAPI.getMyOrdersCount()
+      setTotalOrders(result.count || 0)
+    } catch (error) {
+      console.error('Error loading orders count:', error)
+    }
+  }
 
   const loadOrders = async (reset = false) => {
     // Éviter les chargements multiples
@@ -54,16 +68,17 @@ export default function CommandesPage() {
     try {
       isLoadingRef.current = true
       
+      let currentPage: number
       if (reset) {
         setLoading(true)
-        setPage(1)
+        currentPage = 1
         setHasMore(true)
       } else {
         setLoadingMore(true)
+        currentPage = page + 1 // Incrémenter AVANT le chargement
       }
       
       const isShop = user?.type === "shop"
-      const currentPage = reset ? 1 : page
       console.log("📦 [COMMANDES] Chargement page:", currentPage)
       
       // Charger avec pagination (10 par page)
@@ -76,16 +91,19 @@ export default function CommandesPage() {
       
       if (reset) {
         setOrders(data)
+        setPage(1)
       } else {
-        setOrders(prev => [...prev, ...data])
+        // Filtrer les doublons par ID
+        setOrders(prev => {
+          const existingIds = new Set(prev.map(o => o.id))
+          const newOrders = data.filter((o: Order) => !existingIds.has(o.id))
+          return [...prev, ...newOrders]
+        })
+        setPage(currentPage)
       }
       
       // Si moins de 10 résultats, il n'y a plus de pages
       setHasMore(data.length === 10)
-      
-      if (!reset) {
-        setPage(prev => prev + 1)
-      }
     } catch (error) {
       console.error("Failed to load orders:", error)
     } finally {
@@ -289,7 +307,7 @@ export default function CommandesPage() {
           {user?.type === "shop" ? t('shopOrders') : t('myOrders')}
         </Text>
         <Text style={[styles.subtitle, isRTL && { textAlign: 'right' }]}>
-          {filteredOrders.length} {filteredOrders.length > 1 ? t('orders') : t('order')}
+          {totalOrders !== null ? totalOrders : orders.length} {t('ordersCount')}
         </Text>
       </View>
 

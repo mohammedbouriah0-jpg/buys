@@ -14,10 +14,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Save, Image as ImageIcon } from "lucide-react-native";
 import { productsAPI } from "@/lib/api";
 import * as ImagePicker from "expo-image-picker";
+import { useKeyboardScroll } from "@/hooks/useKeyboardScroll";
 
 export default function EditProductPage() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { scrollViewRef, keyboardHeight, scrollToFocusedInput, handleScroll } = useKeyboardScroll();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
@@ -161,7 +163,15 @@ export default function EditProductPage() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: keyboardHeight + 100 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         {/* Image */}
         <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
           {imageUri ? (
@@ -183,6 +193,7 @@ export default function EditProductPage() {
             onChangeText={setName}
             placeholder="Ex: T-shirt Nike"
             placeholderTextColor="#9ca3af"
+            onFocus={(e) => scrollToFocusedInput(e.target)}
           />
         </View>
 
@@ -198,6 +209,7 @@ export default function EditProductPage() {
             multiline
             numberOfLines={4}
             textAlignVertical="top"
+            onFocus={(e) => scrollToFocusedInput(e.target)}
           />
         </View>
 
@@ -212,6 +224,7 @@ export default function EditProductPage() {
               placeholder="0"
               keyboardType="numeric"
               placeholderTextColor="#9ca3af"
+              onFocus={(e) => scrollToFocusedInput(e.target)}
             />
           </View>
 
@@ -225,6 +238,7 @@ export default function EditProductPage() {
                 placeholder="0"
                 keyboardType="numeric"
                 placeholderTextColor="#9ca3af"
+                onFocus={(e) => scrollToFocusedInput(e.target)}
               />
             </View>
           )}
@@ -279,6 +293,7 @@ export default function EditProductPage() {
                       onChangeText={(text) => updateVariant(index, 'size', text)}
                       placeholder="Ex: M, 128GB, 1kg..."
                       placeholderTextColor="#9ca3af"
+                      onFocus={(e) => scrollToFocusedInput(e.target)}
                     />
                   </View>
 
@@ -290,6 +305,7 @@ export default function EditProductPage() {
                       onChangeText={(text) => updateVariant(index, 'color', text)}
                       placeholder="Ex: Noir, Plastique..."
                       placeholderTextColor="#9ca3af"
+                      onFocus={(e) => scrollToFocusedInput(e.target)}
                     />
                   </View>
 
@@ -302,6 +318,7 @@ export default function EditProductPage() {
                       placeholder="0"
                       keyboardType="numeric"
                       placeholderTextColor="#9ca3af"
+                      onFocus={(e) => scrollToFocusedInput(e.target)}
                     />
                   </View>
                 </View>

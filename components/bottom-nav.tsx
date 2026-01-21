@@ -5,6 +5,7 @@ import { Home, Grid3X3, ShoppingBag, ShoppingCart, User, Store, Shield } from "l
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 function NavItem({ item, isActive, showBadge, badgeCount }: any) {
   const scaleAnim = useRef(new Animated.Value(1)).current
@@ -83,6 +84,7 @@ export function BottomNav() {
   const { totalItems } = useCart()
   const { isAuthenticated, user } = useAuth()
   const { t, isRTL } = useLanguage()
+  const insets = useSafeAreaInsets()
   
   const clientNavItems = [
     { href: "/", icon: Home, label: t('home') },
@@ -100,7 +102,6 @@ export function BottomNav() {
   const adminNavItems = [
     { href: "/", icon: Home, label: t('home') },
     { href: "/admin", icon: Shield, label: t('admin') },
-    { href: "/gestion", icon: Store, label: t('management') },
   ]
   
   const navItems = user?.type === "admin" 
@@ -112,20 +113,19 @@ export function BottomNav() {
   // Inverser l'ordre des onglets en mode RTL (sauf le profil qui reste à droite)
   const displayNavItems = isRTL ? [...navItems].reverse() : navItems
   
-  // Créer le profil item
+  // Créer le profil item (sans prop `key` pour éviter le warning React)
   const profileItem = {
-    key: "profile",
     item: { href: isAuthenticated ? "/profile" : "/login", icon: User, label: t('profile') },
-    isActive: pathname === "/profile" || pathname === "/login",
+    isActive: pathname === "/profile" || pathname === "/(tabs)/profile" || pathname === "/login",
     showBadge: false,
-    badgeCount: 0
+    badgeCount: 0,
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom + 12, 24) }]}>
       <View style={styles.nav}>
         {isRTL && (
-          <NavItem {...profileItem} />
+          <NavItem key="profile" {...profileItem} />
         )}
         
         {displayNavItems.map((item) => {
@@ -144,7 +144,7 @@ export function BottomNav() {
         })}
 
         {!isRTL && (
-          <NavItem {...profileItem} />
+          <NavItem key="profile" {...profileItem} />
         )}
       </View>
     </View>
@@ -160,7 +160,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopWidth: 0.5,
     borderTopColor: "#e5e7eb",
-    paddingBottom: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,

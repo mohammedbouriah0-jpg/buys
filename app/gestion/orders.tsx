@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -20,9 +21,12 @@ import {
   User,
   Filter,
   PackageX,
+  Search,
 } from "lucide-react-native";
 import { ordersAPI } from "@/lib/api";
 import { ReturnModal } from "@/components/return-modal";
+import { startOrderChecking, stopOrderChecking } from "@/lib/order-notifications";
+import { useAuth } from "@/lib/auth-context";
 
 interface Order {
   id: number;
@@ -31,33 +35,62 @@ interface Order {
   created_at: string;
   shipping_address: string;
   phone: string;
-  user_name: string;
+  user_name?: string;
+  customer_name?: string;
+  customer_phone?: string;
   returns_count?: number;
   return_requested?: boolean;
+  shop_order_number?: number;
   items: any[];
 }
 
 type FilterType = "all" | "pending" | "delivered" | "returned";
 
 import { useLanguage } from "@/lib/i18n/language-context";
+import { VerificationGuard } from "@/components/verification-guard";
 
 export default function ShopOrdersPage() {
   const router = useRouter();
   const { t, isRTL } = useLanguage();
+  const { token, user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Démarrer la vérification des nouvelles commandes
+  useEffect(() => {
+    if (token && user?.type === 'boutique') {
+      console.log('🔔 Démarrage notifications locales pour commandes');
+      startOrderChecking(token, user.id);
+
+      return () => {
+        stopOrderChecking();
+      };
+    }
+  }, [token, user]);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [totalOrders, setTotalOrders] = useState<number | null>(null);
   const isLoadingRef = React.useRef(false);
 
   useEffect(() => {
     loadOrders(true);
+    loadTotalCount();
   }, []);
+
+  const loadTotalCount = async () => {
+    try {
+      const result = await ordersAPI.getShopOrdersCount();
+      setTotalOrders(result.count || result.total || result);
+    } catch (error) {
+      console.error('Error loading orders count:', error);
+    }
+  };
 
   const loadOrders = async (reset = false) => {
     // Éviter les chargements multiples
@@ -80,11 +113,17 @@ export default function ShopOrdersPage() {
       // Charger avec pagination (5 par page)
       const data = await ordersAPI.getShopOrders(currentPage, 5);
       console.log('✅ [GESTION ORDERS] Commandes reçues:', data.length);
+      console.log('🔍 [DEBUG] Première commande:', JSON.stringify(data[0], null, 2));
       
       if (reset) {
         setOrders(data);
       } else {
-        setOrders(prev => [...prev, ...data]);
+        // Filtrer les doublons par ID
+        setOrders(prev => {
+          const existingIds = new Set(prev.map(o => o.id));
+          const newOrders = data.filter(o => !existingIds.has(o.id));
+          return [...prev, ...newOrders];
+        });
       }
       
       // Si moins de 5 résultats, il n'y a plus de pages
@@ -145,9 +184,21 @@ export default function ShopOrdersPage() {
   };
 
   const filteredOrders = orders.filter((order) => {
-    if (filter === "all") return true;
-    if (filter === "returned") return order.return_requested;
-    return order.status === filter;
+    // Filtrer par statut
+    let passesFilter = true;
+    if (filter === "returned") passesFilter = !!order.return_requested;
+    else if (filter !== "all") passesFilter = order.status === filter;
+    
+    // Filtrer par recherche
+    if (!passesFilter) return false;
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const customerName = (order.customer_name || order.user_name || "").toLowerCase();
+    const phone = (order.customer_phone || order.phone || "").toLowerCase();
+    const orderId = order.id.toString();
+    
+    return customerName.includes(query) || phone.includes(query) || orderId.includes(query);
   });
 
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
@@ -308,18 +359,32 @@ export default function ShopOrdersPage() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+      <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <ArrowLeft size={20} color="#000" />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{t("orders")}</Text>
-          <Text style={[styles.headerSubtitle, { textAlign: isRTL ? 'right' : 'left' }]}>
-            {`${filteredOrders.length} ${t("ordersCount")}${filteredOrders.length > 1 ? "s" : ""}`}
+        <View style={[styles.headerContent, isRTL && { alignItems: 'flex-end' }]}>
+          <Text style={styles.headerTitle}>{t("orders")}</Text>
+          <Text style={styles.headerSubtitle}>
+            {totalOrders !== null ? totalOrders : orders.length} {t("ordersCount")}
           </Text>
+        </View>
+      </View>
+
+      {/* Barre de recherche compacte */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchInputWrapper, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <Search size={16} color="#9ca3af" />
+          <TextInput
+            style={[styles.searchInput, { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }]}
+            placeholder={t("searchOrders")}
+            placeholderTextColor="#9ca3af"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
       </View>
 
@@ -443,13 +508,13 @@ export default function ShopOrdersPage() {
               )}
               <View style={[styles.orderHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={styles.orderHeaderLeft}>
-                  <Text style={[styles.orderNumber, { textAlign: isRTL ? 'right' : 'left' }]}>{`Commande #${order.id}`}</Text>
+                  <Text style={[styles.orderNumber, { textAlign: isRTL ? 'right' : 'left' }]}>{`${t("order")} #${order.shop_order_number || order.id}`}</Text>
                   <Text style={[styles.orderDate, { textAlign: isRTL ? 'right' : 'left' }]}>
                     {formatDate(order.created_at)}
                   </Text>
                 </View>
                 <View style={[styles.orderHeaderRight, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-                  {order.return_requested && (
+                  {!!order.return_requested && (
                     <View style={[styles.returnedBadge, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                       <PackageX size={14} color="#fff" />
                       <Text style={styles.returnedBadgeText}>{t("returned_badge")}</Text>
@@ -483,9 +548,9 @@ export default function ShopOrdersPage() {
                 </View>
                 <View style={styles.clientDetails}>
                   <Text style={[styles.clientName, { textAlign: isRTL ? 'right' : 'left' }]}>
-                    {order.user_name || t("client")}
+                    {order.customer_name || order.user_name || t("client")}
                   </Text>
-                  <Text style={[styles.clientPhone, { textAlign: isRTL ? 'right' : 'left' }]}>{order.phone || "N/A"}</Text>
+                  <Text style={[styles.clientPhone, { textAlign: isRTL ? 'right' : 'left' }]}>{order.customer_phone || order.phone || "N/A"}</Text>
                 </View>
                 {(order.returns_count || 0) >= 2 && (
                   <View style={[styles.warningBadgeSmall, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
@@ -498,7 +563,7 @@ export default function ShopOrdersPage() {
               </View>
 
               <View style={styles.orderItems}>
-                {order.items && order.items.length > 0 ? (
+                {Array.isArray(order.items) && order.items.length > 0 ? (
                   order.items.map((item: any, index: number) => (
                     <View key={index} style={styles.orderItemContainer}>
                       <View style={[styles.orderItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
@@ -510,14 +575,14 @@ export default function ShopOrdersPage() {
                           {`${(item.price * item.quantity).toLocaleString()} DA`}
                         </Text>
                       </View>
-                      {(item.variant_size || item.variant_color) && (
+                      {!!(item.variant_size || item.variant_color) && (
                         <View style={[styles.variantsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-                          {item.variant_size && (
+                          {!!item.variant_size && (
                             <View style={styles.variantBadge}>
                               <Text style={styles.variantText}>{item.variant_size}</Text>
                             </View>
                           )}
-                          {item.variant_color && (
+                          {!!item.variant_color && (
                             <View style={styles.variantBadge}>
                               <Text style={styles.variantText}>{item.variant_color}</Text>
                             </View>
@@ -547,7 +612,7 @@ export default function ShopOrdersPage() {
                 </View>
 
                 <View style={[styles.actionButtons, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-                  {getNextStatus(order.status) && (
+                  {!!getNextStatus(order.status) && (
                     <TouchableOpacity
                       style={styles.primaryButton}
                       onPress={(e) => {
@@ -1059,5 +1124,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9ca3af",
     fontStyle: "italic",
+  },
+  searchContainer: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  searchInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: "#111827",
+    paddingVertical: 0,
   },
 });

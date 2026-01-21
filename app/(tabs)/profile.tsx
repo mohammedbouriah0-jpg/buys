@@ -8,32 +8,57 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { LogOut, Edit, Mail, Phone, MapPin, Store, CheckCircle, Lock, Calendar, ShoppingBag } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LogOut, Edit, Mail, Phone, MapPin, Store, CheckCircle, Lock, Heart, Headphones } from "lucide-react-native";
 import { useAuth } from "@/lib/auth-context";
 import { LanguageSelector } from "@/components/language-selector";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { API_URL } from "@/config";
+import { getMediaUrl } from "@/lib/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ProfileModern() {
   const { user, logout, refreshUser, isAuthenticated } = useAuth();
   const { t, isRTL } = useLanguage();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [verificationStatus, setVerificationStatus] = React.useState<any>(null);
   const [loadingStatus, setLoadingStatus] = React.useState(false);
+  const [supportActive, setSupportActive] = React.useState(false);
+
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated]);
 
   React.useEffect(() => {
     if (isAuthenticated) {
       refreshUser();
+      loadSupportStatus();
       if (user?.type === "shop") {
         loadVerificationStatus();
       }
     }
   }, []);
 
+  const loadSupportStatus = async () => {
+    try {
+      const response = await fetch(`${API_URL}/support/info`);
+      if (response.ok) {
+        const data = await response.json();
+        // Si on a des contacts, le support est actif
+        setSupportActive(data.contacts && data.contacts.length > 0);
+      }
+    } catch (error) {
+      console.error("Erreur chargement support:", error);
+    }
+  };
+
   const loadVerificationStatus = async () => {
     try {
       setLoadingStatus(true);
-      const AsyncStorage = require("@react-native-async-storage/async-storage").default;
       const token = await AsyncStorage.getItem("auth_token");
       
       const response = await fetch(`${API_URL}/verification/status`, {
@@ -53,8 +78,8 @@ export default function ProfileModern() {
     }
   };
 
+  // Show nothing while redirecting
   if (!isAuthenticated) {
-    router.replace("/login");
     return null;
   }
 
@@ -89,23 +114,26 @@ export default function ProfileModern() {
           {isShop ? (
             // Logo de la boutique
             user?.shopLogo ? (
-              <Image source={{ uri: user.shopLogo }} style={styles.avatar} />
+              <Image source={{ uri: getMediaUrl(user.shopLogo) }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Store size={40} color="#fff" />
               </View>
             )
           ) : (
-            // Avatar du client
+            // Avatar du client (Google avatar est déjà une URL complète)
             user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              <Image 
+                source={{ uri: user.avatar.startsWith('http') ? user.avatar : getMediaUrl(user.avatar) }} 
+                style={styles.avatar} 
+              />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{user?.name.charAt(0).toUpperCase()}</Text>
+                <Text style={styles.avatarText}>{user?.name?.charAt(0)?.toUpperCase() || "?"}</Text>
               </View>
             )
           )}
-          {isShop && user?.verified && (
+          {isShop && !!user?.verified && (
             <View style={styles.verifiedBadge}>
               <CheckCircle size={24} color="#3b82f6" fill="#3b82f6" />
             </View>
@@ -257,9 +285,16 @@ export default function ProfileModern() {
                           {`${t('reason')}: ${verificationStatus.rejection_reason}`}
                         </Text>
                       )}
-                      {verificationStatus?.verification_date && (
-                        <Text style={[styles.verificationDate, isRTL && { textAlign: 'right' }]}>
-                          {new Date(verificationStatus.verification_date).toLocaleDateString(isRTL ? "ar-DZ" : "fr-FR")}
+                      {verificationStatus?.is_verified && (
+                        <Text style={[
+                          styles.verificationDate, 
+                          isRTL && { textAlign: 'right' },
+                          !verificationStatus?.is_subscribed && { color: '#ef4444' }
+                        ]}>
+                          {verificationStatus?.is_subscribed && verificationStatus?.subscription_end_date
+                            ? `✅ ${t('until') || "Jusqu'au"} ${new Date(verificationStatus.subscription_end_date).toLocaleDateString(isRTL ? "ar-DZ" : "fr-FR")}`
+                            : `⚠️ ${t('noSubscription') || "Pas d'abonnement actif"}`
+                          }
                         </Text>
                       )}
                     </>
@@ -285,6 +320,33 @@ export default function ProfileModern() {
           </View>
         )}
 
+        {/* Section Mes j'aime - seulement pour les clients */}
+        {!isShop && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>
+              {t('myActivity') || 'Mon activité'}
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]}
+              onPress={() => router.push("/my-likes")}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#fee2e2' }]}>
+                <Heart size={20} color="#ef4444" fill="#ef4444" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={[styles.actionTitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>
+                  {t('myLikes') || 'Mes j\'aime'}
+                </Text>
+                <Text style={[styles.actionSubtitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>
+                  {t('myLikesSubtitle') || 'Voir les produits que j\'ai aimés'}
+                </Text>
+              </View>
+              <Text style={[styles.actionArrow, isRTL && { transform: [{ scaleX: -1 }] }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Section Sécurité */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>{t('security')}</Text>
@@ -304,24 +366,31 @@ export default function ProfileModern() {
           </TouchableOpacity>
         </View>
 
-        {/* Section Statistiques (pour boutiques) */}
-        {isShop && (
+        
+        {/* Section Support - visible uniquement si le support est actif */}
+        {supportActive && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>{t('statistics')}</Text>
+            <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>
+              {t('contactSupport') || 'Support'}
+            </Text>
             
-            <View style={[styles.statsCard, isRTL && { flexDirection: 'row-reverse' }]}>
-              <View style={styles.statItem}>
-                <ShoppingBag size={24} color="#3b82f6" />
-                <Text style={styles.statValue}>0</Text>
-                <Text style={[styles.statLabel, isRTL && { textAlign: 'center' }]}>{t('totalProducts')}</Text>
+            <TouchableOpacity 
+              style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]}
+              onPress={() => router.push("/support")}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#eff6ff' }]}>
+                <Headphones size={20} color="#3b82f6" />
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Calendar size={24} color="#10b981" />
-                <Text style={styles.statValue}>0</Text>
-                <Text style={[styles.statLabel, isRTL && { textAlign: 'center' }]}>{t('totalOrders')}</Text>
+              <View style={styles.actionContent}>
+                <Text style={[styles.actionTitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>
+                  {t('contactSupport') || 'Contacter le Support'}
+                </Text>
+                <Text style={[styles.actionSubtitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>
+                  {t('supportSubtitle') || 'Besoin d\'aide ? Contactez-nous'}
+                </Text>
               </View>
-            </View>
+              <Text style={[styles.actionArrow, isRTL && { transform: [{ scaleX: -1 }] }]}>›</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -337,7 +406,8 @@ export default function ProfileModern() {
           <Text style={styles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
 
-          <View style={{ height: 40 }} />
+          {/* Espace en bas pour éviter que la barre Android cache le contenu */}
+          <View style={{ height: Math.max(insets.bottom, 20) + 100 }} />
         </View>
       </ScrollView>
     </View>

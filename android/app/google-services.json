@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "174937105090",
+    "project_id": "buys-app",
+    "storage_bucket": "buys-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:174937105090:android:89280e921a7f94b782515b",
+        "android_client_info": {
+          "package_name": "com.buys.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpIF8MLpg74rZEpEdRU-NqQpB-zdvM56k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

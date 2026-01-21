@@ -1,18 +1,18 @@
 {
   "cli": {
-    "version": ">= 5.0.0"
+    "version": ">= 3.45.0"
   },
   "build": {
     "development": {
-      "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleDebug"
+        "buildType": "apk"
       },
       "ios": {
-        "simulator": false,
-        "buildConfiguration": "Debug"
+        "simulator": true
+      },
+      "env": {
+        "EXPO_DEV": "1"
       }
     },
     "preview": {
@@ -22,6 +22,22 @@
       },
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PREVIEW": "1"
+      }
+    },
+    "preview2": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "cache": {
+        "disabled": true
       }
     },
     "production": {
@@ -29,11 +45,25 @@
         "buildType": "apk"
       },
       "ios": {
-        "buildConfiguration": "Release"
+        "autoIncrement": true
+      },
+      "env": {
+        "EXPO_PROD": "1"
+      },
+      "cache": {
+        "disabled": true
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json"
+      },
+      "ios": {
+        "appleId": "VOTRE_APPLE_ID",
+        "ascAppId": "VOTRE_APP_STORE_CONNECT_APP_ID"
+      }
+    }
   }
 }

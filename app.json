@@ -1,23 +1,13 @@
 {
   "expo": {
     "name": "buys",
-    "slug": "buys",
+    "slug": "buys-expo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/Logo.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.buys.app",
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
-    },
-    "icon": "./assets/Logo.png",
+    "icon": "./assets/Logo2.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/Logo.png",
+      "image": "./assets/Logo2.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -26,31 +16,133 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.buys.app"
+      "bundleIdentifier": "com.buys.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.288552147312-5u8d8tvigf6hfvv6k70pnm297kvounfb",
+              "buys"
+            ]
+          }
+        ]
+      },
+      "associatedDomains": [
+        "applinks:buysdz.com"
+      ]
     },
+"android": {
+  "package": "com.buys.app",
+  "versionCode": 1,
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/Logo2.png",
+    "backgroundColor": "#000000"
+  },
+  "permissions": [
+    "android.permission.RECORD_AUDIO",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.INTERNET"
+  ],
+  "useNextNotificationsApi": true,
+  "usesCleartextTraffic": true,
+  "navigationBar": {
+    "visible": "immersive",
+    "backgroundColor": "#ffffff"
+  },
+  "googleServicesFile": "./google-services.json",
+  "intentFilters": [
+    {
+      "action": "VIEW",
+      "autoVerify": true,
+      "data": [
+        {
+          "scheme": "https",
+          "host": "buysdz.com",
+          "pathPrefix": "/v"
+        },
+        {
+          "scheme": "https",
+          "host": "buysdz.com",
+          "pathPrefix": "/s"
+        }
+      ],
+      "category": ["BROWSABLE", "DEFAULT"]
+    },
+    {
+      "action": "VIEW",
+      "data": [
+        {
+          "scheme": "buys",
+          "host": "share",
+          "pathPrefix": "/video"
+        },
+        {
+          "scheme": "buys",
+          "host": "share",
+          "pathPrefix": "/shop"
+        }
+      ],
+      "category": ["BROWSABLE", "DEFAULT"]
+    }
+  ]
+}
+,
     "web": {
-      "favicon": "./assets/Logo.png",
+      "favicon": "./assets/Logo2.png",
       "bundler": "metro"
     },
     "plugins": [
       "expo-router",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.288552147312-5u8d8tvigf6hfvv6k70pnm297kvounfb"
+        }
+      ],
+      [
+        "expo-apple-authentication"
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
       [
         "expo-image-picker",
         {
           "photosPermission": "L'application a besoin d'accéder à vos photos pour ajouter des images de produits et vidéos.",
           "cameraPermission": "L'application a besoin d'accéder à votre caméra pour prendre des photos de produits."
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/Logo2.png",
+          "color": "#000000",
+          "defaultChannel": "orders"
+        }
+      ],
+      "expo-asset",
+      "expo-font",
+      "expo-web-browser"
     ],
     "scheme": "buys",
-    "newArchEnabled": true,
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "e7071abd-b30e-4091-9969-9c2352329dfb"
+        "projectId": "a273c1c0-80a5-41d4-a12a-392ccd704337"
       }
-    }
+    },
+    "owner": "hamou1234"
   }
 }

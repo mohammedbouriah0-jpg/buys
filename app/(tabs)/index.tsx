@@ -1,47 +1,54 @@
-import React, { useEffect, useState, useRef } from "react"
-import { View, FlatList, ActivityIndicator, Text, StyleSheet, Dimensions, ViewToken, TouchableOpacity, Animated } from "react-native"
+import React, { useEffect, useState, useRef, useCallback } from "react"
+import { View, FlatList, ActivityIndicator, Text, StyleSheet, ViewToken, TouchableOpacity, Animated, Alert, Dimensions } from "react-native"
+import { useFocusEffect } from "@react-navigation/native"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import { videosAPI } from "@/lib/api"
 import { VideoCard } from "@/components/video-card"
 import { useAuth } from "@/lib/auth-context"
 import { useLanguage } from "@/lib/i18n/language-context"
-
-const { height } = Dimensions.get("window")
+import { Search } from "lucide-react-native"
 
 type TabType = "all" | "subscriptions"
 
 export default function HomePage() {
   const { isAuthenticated } = useAuth()
   const { t } = useLanguage()
+  const params = useLocalSearchParams()
+  const router = useRouter()
+  
+  // Hauteur mesurée du conteneur de vidéos (sera mis à jour par onLayout)
+  const [videoHeight, setVideoHeight] = useState(0)
+  
+  // Callback pour mesurer la hauteur réelle du conteneur
+  const onVideoContainerLayout = useCallback((event: any) => {
+    const { height } = event.nativeEvent.layout
+    if (height > 0 && height !== videoHeight) {
+      setVideoHeight(height)
+    }
+  }, [videoHeight])
+  
   const [loading, setLoading] = useState(true)
+  const [sharedVideoId, setSharedVideoId] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [videos, setVideos] = useState<any[]>([])
-  const [allVideos, setAllVideos] = useState<any[]>([]) // Stocker toutes les vidéos
+  const [allVideos, setAllVideos] = useState<any[]>([])
   const [activeVideoIndex, setActiveVideoIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<TabType>("all")
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const VIDEOS_PER_PAGE = 5 // Charger 5 vidéos à la fois
-  
-  const pulseAnim = useRef(new Animated.Value(0.3)).current
+  const [isPageFocused, setIsPageFocused] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const VIDEOS_PER_PAGE = 5
 
-  useEffect(() => {
-    if (loading) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 0.3,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start()
-    }
-  }, [loading])
+  // Gérer le focus/blur de la page pour arrêter les vidéos
+  useFocusEffect(
+    React.useCallback(() => {
+      setIsPageFocused(true)
+      return () => {
+        setIsPageFocused(false)
+      }
+    }, [])
+  )
   
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 80
@@ -50,6 +57,70 @@ export default function HomePage() {
   useEffect(() => {
     loadVideos(true)
   }, [activeTab])
+
+  // Gérer l'erreur de vidéo non trouvée
+  useEffect(() => {
+    if (params.error === 'video_not_found') {
+      Alert.alert(
+        t('error') || 'Erreur',
+        t('video_not_found') || 'Cette vidéo n\'existe pas ou a été supprimée.',
+        [{ text: 'OK' }]
+      )
+    }
+  }, [params.error])
+
+  // Gérer le deep link vidéo - charger cette vidéo en premier
+  useEffect(() => {
+    if (params.videoId) {
+      console.log('📺 Deep link vidéo détecté:', params.videoId);
+      setSharedVideoId(params.videoId as string);
+      loadSharedVideo(params.videoId as string);
+      // Nettoyer l'URL
+      router.setParams({ videoId: undefined });
+    }
+  }, [params.videoId])
+
+  const loadSharedVideo = async (videoId: string) => {
+    try {
+      setLoading(true);
+      // Charger la vidéo partagée
+      const sharedVideo = await videosAPI.getById(videoId);
+      
+      if (!sharedVideo) {
+        Alert.alert(
+          t('error') || 'Erreur',
+          t('video_not_found') || 'Cette vidéo n\'existe pas ou a été supprimée.',
+          [{ text: 'OK' }]
+        );
+        loadVideos(true);
+        return;
+      }
+
+      // Charger les autres vidéos
+      const allData = await videosAPI.getAll();
+      
+      // Filtrer pour éviter les doublons et mettre la vidéo partagée en premier
+      const otherVideos = allData.filter((v: any) => v.id !== sharedVideo.id);
+      const combinedVideos = [sharedVideo, ...otherVideos];
+      
+      setAllVideos(combinedVideos);
+      setVideos(combinedVideos.slice(0, VIDEOS_PER_PAGE));
+      setHasMore(combinedVideos.length > VIDEOS_PER_PAGE);
+      setActiveVideoIndex(0); // Commencer par la vidéo partagée
+      
+    } catch (error) {
+      console.error('Erreur chargement vidéo partagée:', error);
+      Alert.alert(
+        t('error') || 'Erreur',
+        t('video_not_found') || 'Cette vidéo n\'existe pas ou a été supprimée.',
+        [{ text: 'OK' }]
+      );
+      loadVideos(true);
+    } finally {
+      setLoading(false);
+      setSharedVideoId(null);
+    }
+  }
 
   const loadVideos = async (reset = false) => {
     if (reset) {
@@ -62,11 +133,11 @@ export default function HomePage() {
     }
 
     try {
+      setError(null)
       const subscriptionsOnly = activeTab === "subscriptions"
       const data = await videosAPI.getAll(undefined, subscriptionsOnly)
       
       if (reset) {
-        // Première fois : stocker toutes les vidéos et afficher les premières
         setAllVideos(data)
         const paginatedData = data.slice(0, VIDEOS_PER_PAGE)
         setVideos(paginatedData)
@@ -92,8 +163,9 @@ export default function HomePage() {
           setHasMore(true)
         }
       }
-    } catch (error) {
-      console.error("Error loading videos:", error)
+    } catch (err: any) {
+      console.error("Error loading videos:", err)
+      setError(err?.message || 'Erreur de connexion')
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -134,15 +206,26 @@ export default function HomePage() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Animated.Image
-          source={require('@/assets/Logo.png')}
-          style={[styles.loadingLogo, { opacity: pulseAnim }]}
-        />
+        <ActivityIndicator size="large" color="#fff" />
       </View>
     )
   }
 
   const renderEmptyState = () => {
+    if (error) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>{t('connectionError') || 'Erreur de connexion'}</Text>
+          <Text style={styles.emptySubtext}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => loadVideos(true)}
+          >
+            <Text style={styles.retryButtonText}>{t('retry') || 'Réessayer'}</Text>
+          </TouchableOpacity>
+        </View>
+      )
+    }
     if (activeTab === "subscriptions") {
       return (
         <View style={styles.emptyContainer}>
@@ -162,14 +245,61 @@ export default function HomePage() {
   if (videos.length === 0 && !loading) {
     return (
       <>
-        {/* Tabs TikTok Style */}
+        {/* Tabs TikTok Style avec bouton recherche */}
         <View style={styles.tabsContainer}>
+          <View style={{ width: 44 }} />
+          <View style={styles.tabsCenter}>
+            <TouchableOpacity
+              style={styles.tab}
+              onPress={() => handleTabChange("all")}
+            >
+              <Text style={[styles.tabText, activeTab === "all" && styles.tabTextActive]}>
+                {t('forYou')}
+              </Text>
+              {activeTab === "all" && <View style={styles.tabUnderline} />}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.tab}
+              onPress={() => handleTabChange("subscriptions")}
+              disabled={!isAuthenticated}
+            >
+              <Text style={[
+                styles.tabText,
+                activeTab === "subscriptions" && styles.tabTextActive,
+                !isAuthenticated && styles.tabTextDisabled
+              ]}>
+                {t('subscriptions')}
+              </Text>
+              {activeTab === "subscriptions" && <View style={styles.tabUnderline} />}
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={() => router.push('/search')}
+          >
+            <Search size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        {renderEmptyState()}
+      </>
+    )
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      {/* Tabs TikTok Style avec bouton recherche */}
+      <View style={styles.tabsContainer}>
+        {/* Espace gauche pour équilibrer */}
+        <View style={{ width: 44 }} />
+        
+        {/* Tabs centrés */}
+        <View style={styles.tabsCenter}>
           <TouchableOpacity
             style={styles.tab}
             onPress={() => handleTabChange("all")}
           >
             <Text style={[styles.tabText, activeTab === "all" && styles.tabTextActive]}>
-              Pour toi
+              {t('forYou')}
             </Text>
             {activeTab === "all" && <View style={styles.tabUnderline} />}
           </TouchableOpacity>
@@ -183,45 +313,24 @@ export default function HomePage() {
               activeTab === "subscriptions" && styles.tabTextActive,
               !isAuthenticated && styles.tabTextDisabled
             ]}>
-              Abonnements
+              {t('subscriptions')}
             </Text>
             {activeTab === "subscriptions" && <View style={styles.tabUnderline} />}
           </TouchableOpacity>
         </View>
-        {renderEmptyState()}
-      </>
-    )
-  }
-
-  return (
-    <View style={{ flex: 1 }}>
-      {/* Tabs TikTok Style */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={styles.tab}
-          onPress={() => handleTabChange("all")}
+        
+        {/* Bouton recherche */}
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={() => router.push('/search')}
         >
-          <Text style={[styles.tabText, activeTab === "all" && styles.tabTextActive]}>
-            {t('forYou')}
-          </Text>
-          {activeTab === "all" && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.tab}
-          onPress={() => handleTabChange("subscriptions")}
-          disabled={!isAuthenticated}
-        >
-          <Text style={[
-            styles.tabText,
-            activeTab === "subscriptions" && styles.tabTextActive,
-            !isAuthenticated && styles.tabTextDisabled
-          ]}>
-            {t('subscriptions')}
-          </Text>
-          {activeTab === "subscriptions" && <View style={styles.tabUnderline} />}
+          <Search size={22} color="#fff" />
         </TouchableOpacity>
       </View>
 
+      {/* Conteneur pour mesurer la hauteur disponible */}
+      <View style={{ flex: 1 }} onLayout={onVideoContainerLayout}>
+      {videoHeight > 0 && (
       <FlatList
       data={videos}
       renderItem={({ item, index }) => {
@@ -253,14 +362,18 @@ export default function HomePage() {
             video={videoData} 
             shop={shop} 
             products={products}
-            isActive={index === activeVideoIndex}
+            isActive={index === activeVideoIndex && isPageFocused}
             shouldLoad={shouldLoad}
+            videoHeight={videoHeight}
             onSubscriptionChange={handleSubscriptionChange}
           />
         )
       }}
       keyExtractor={(item, index) => `video-${item.id}-${index}`}
       pagingEnabled
+      snapToInterval={videoHeight}
+      snapToAlignment="start"
+      decelerationRate="fast"
       // Optimisations de performance
       initialNumToRender={2}
       maxToRenderPerBatch={2}
@@ -272,26 +385,25 @@ export default function HomePage() {
       onEndReachedThreshold={0.5}
       ListFooterComponent={
         loadingMore ? (
-          <View style={styles.footerLoader}>
-            <ActivityIndicator size="large" color="#000" />
+          <View style={[styles.footerLoader, { height: videoHeight }]}>
+            <ActivityIndicator size="large" color="#fff" />
             <Text style={styles.footerText}>{t('loading')}</Text>
           </View>
         ) : null
       }
       showsVerticalScrollIndicator={false}
-      snapToInterval={height}
-      snapToAlignment="start"
-      decelerationRate="fast"
       disableIntervalMomentum={true}
       getItemLayout={(data, index) => ({
-        length: height,
-        offset: height * index,
+        length: videoHeight,
+        offset: videoHeight * index,
         index,
       })}
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={viewabilityConfig.current}
       style={styles.list}
     />
+      )}
+      </View>
     </View>
   )
 }
@@ -301,29 +413,37 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-  loadingLogo: {
-    width: 120,
-    height: 120,
+    backgroundColor: "#000",
   },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
     padding: 24,
+    backgroundColor: "#000",
   },
   emptyText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#000",
+    color: "#fff",
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#8e8e8e",
+    color: "#aaa",
     textAlign: "center",
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: "#fff",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "600",
   },
   list: {
     flex: 1,
@@ -338,10 +458,22 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 16,
     paddingBottom: 12,
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 10,
+  },
+  tabsCenter: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 24,
+  },
+  searchButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   tab: {
     paddingVertical: 6,
@@ -379,14 +511,13 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   footerLoader: {
-    height: height,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#000",
     gap: 12,
   },
   footerText: {
     fontSize: 14,
-    color: "#8e8e8e",
+    color: "#fff",
   },
 })

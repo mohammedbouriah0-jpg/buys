@@ -117,160 +117,361 @@ export default function EditVideoPage() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white pt-12 pb-4 px-5 border-b border-gray-100">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1">
-            <TouchableOpacity onPress={() => router.back()} className="mr-4">
-              <ArrowLeft size={24} color="#000" />
+    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+      {/* Header moderne blanc */}
+      <View style={{
+        backgroundColor: '#ffffff',
+        paddingTop: 48,
+        paddingBottom: 14,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 4
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <TouchableOpacity 
+              onPress={() => router.back()}
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: '#f3f4f6',
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 12
+              }}
+            >
+              <ArrowLeft size={20} color="#111827" strokeWidth={2.5} />
             </TouchableOpacity>
-            <Text className="text-2xl font-black">{t('modifyVideo')}</Text>
+            <Text style={{ fontSize: 19, fontWeight: '800', color: '#111827' }}>
+              {t('modifyVideo')}
+            </Text>
           </View>
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
-            className="bg-black rounded-full px-5 py-2.5 flex-row items-center"
-            style={{ opacity: saving ? 0.5 : 1 }}
+            style={{
+              backgroundColor: '#3b82f6',
+              borderRadius: 20,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              opacity: saving ? 0.5 : 1,
+              shadowColor: '#3b82f6',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 6
+            }}
           >
-            <Save size={18} color="#fff" strokeWidth={2} />
-            <Text className="text-white font-bold ml-2">{saving ? "..." : t('save')}</Text>
+            <Save size={16} color="#fff" strokeWidth={2.5} />
+            <Text style={{ color: '#ffffff', fontWeight: '700', marginLeft: 6, fontSize: 14 }}>
+              {saving ? "..." : t('save')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 20 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Aperçu vidéo */}
-        <View className="bg-white rounded-2xl overflow-hidden shadow-sm mb-5">
-          <View className="bg-gray-900" style={{ height: 200 }}>
-            {video?.thumbnail_url ? (
-              <Image
-                source={{ uri: video.thumbnail_url }}
-                style={{ width: "100%", height: "100%" }}
-                resizeMode="cover"
-              />
-            ) : video?.video_url ? (
-              <Video
-                source={{ uri: video.video_url }}
-                style={{ width: "100%", height: "100%" }}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={false}
-                isMuted={true}
-                positionMillis={0}
-              />
-            ) : (
-              <View className="flex-1 items-center justify-center">
-                <Film size={48} color="#9ca3af" />
-              </View>
-            )}
-          </View>
-          <View className="p-4 bg-blue-50">
-            <Text className="text-xs text-blue-600 font-semibold">
-              💡 {t('canOnlyModifyTitleDesc')}
+        <View style={{ position: 'relative', height: 400, backgroundColor: '#000000' }}>
+          {video?.thumbnail_url ? (
+            <Image
+              source={{ uri: video.thumbnail_url }}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+            />
+          ) : video?.video_url ? (
+            <Video
+              source={{ uri: video.video_url }}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay={false}
+              isMuted={true}
+              positionMillis={0}
+            />
+          ) : (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }}>
+              <Film size={64} color="#6b7280" />
+            </View>
+          )}
+          
+          {/* Info badge */}
+          <View style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            right: 16,
+            backgroundColor: 'rgba(59, 130, 246, 0.95)',
+            borderRadius: 14,
+            padding: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8
+          }}>
+            <Text style={{ fontSize: 22, marginRight: 10 }}>💡</Text>
+            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600', flex: 1, lineHeight: 18 }}>
+              {t('canOnlyModifyTitleDesc')}
             </Text>
           </View>
         </View>
 
-        {/* Formulaire */}
-        <View className="gap-5">
+        {/* Formulaire moderne */}
+        <View style={{ padding: 16, gap: 14 }}>
           {/* Titre */}
-          <View className="bg-white rounded-2xl p-5 shadow-sm">
-            <Text className="text-xs font-bold text-gray-500 uppercase mb-3">{t('title')} *</Text>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 16,
+            padding: 18,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+            borderWidth: 1,
+            borderColor: '#e5e7eb'
+          }}>
+            <Text style={{ color: '#6b7280', fontSize: 11, fontWeight: '700', marginBottom: 12, letterSpacing: 0.5 }}>
+              {t('title').toUpperCase()} *
+            </Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
               placeholder={t('videoTitle')}
               placeholderTextColor="#9ca3af"
-              className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-3"
+              style={{
+                color: '#111827',
+                fontSize: 16,
+                fontWeight: '600',
+                paddingBottom: 10,
+                borderBottomWidth: 2,
+                borderBottomColor: '#3b82f6'
+              }}
             />
           </View>
 
           {/* Description */}
-          <View className="bg-white rounded-2xl p-5 shadow-sm">
-            <Text className="text-xs font-bold text-gray-500 uppercase mb-3">{t('description')}</Text>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 16,
+            padding: 18,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+            borderWidth: 1,
+            borderColor: '#e5e7eb'
+          }}>
+            <Text style={{ color: '#6b7280', fontSize: 11, fontWeight: '700', marginBottom: 12, letterSpacing: 0.5 }}>
+              {t('description').toUpperCase()}
+            </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
               placeholder={t('describeVideo')}
               placeholderTextColor="#9ca3af"
               multiline
-              numberOfLines={5}
-              className="text-base text-gray-900 border-b border-gray-200 pb-3"
-              style={{ textAlignVertical: "top", minHeight: 100 }}
+              numberOfLines={4}
+              style={{
+                color: '#111827',
+                fontSize: 14,
+                minHeight: 90,
+                textAlignVertical: "top",
+                paddingBottom: 10,
+                borderBottomWidth: 2,
+                borderBottomColor: '#e5e7eb'
+              }}
             />
           </View>
 
           {/* Produit lié */}
-          <View className="bg-white rounded-2xl p-5 shadow-sm">
-            <Text className="text-xs font-bold text-gray-500 uppercase mb-3">{t('linkedProducts')}</Text>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 16,
+            padding: 18,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+            borderWidth: 1,
+            borderColor: '#e5e7eb'
+          }}>
+            <Text style={{ color: '#6b7280', fontSize: 11, fontWeight: '700', marginBottom: 14, letterSpacing: 0.5 }}>
+              {t('linkedProducts').toUpperCase()}
+            </Text>
             
             {selectedProductId ? (
               <View>
                 {myProducts.find(p => p.id === selectedProductId) && (
-                  <View className="flex-row items-center bg-gray-50 rounded-xl p-3 mb-3">
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: 14,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#e5e7eb'
+                  }}>
                     <Image
                       source={{ uri: myProducts.find(p => p.id === selectedProductId)?.image_url }}
-                      className="w-16 h-16 rounded-lg"
+                      style={{ width: 60, height: 60, borderRadius: 12 }}
                     />
-                    <View className="flex-1 ml-3">
-                      <Text className="font-bold text-gray-900">
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ color: '#111827', fontWeight: '700', fontSize: 14, marginBottom: 4 }}>
                         {myProducts.find(p => p.id === selectedProductId)?.name}
                       </Text>
-                      <Text className="text-sm text-gray-600">
+                      <Text style={{ color: '#3b82f6', fontSize: 14, fontWeight: '800' }}>
                         {myProducts.find(p => p.id === selectedProductId)?.price} DH
                       </Text>
                     </View>
                     <TouchableOpacity
                       onPress={handleRemoveProduct}
-                      className="bg-red-100 p-2 rounded-full"
+                      style={{
+                        backgroundColor: '#fee2e2',
+                        padding: 10,
+                        borderRadius: 12
+                      }}
                     >
-                      <X size={20} color="#ef4444" />
+                      <X size={18} color="#ef4444" strokeWidth={2.5} />
                     </TouchableOpacity>
                   </View>
                 )}
                 <TouchableOpacity
                   onPress={() => setShowProductModal(true)}
-                  className="bg-gray-100 rounded-xl py-3 flex-row items-center justify-center"
+                  style={{
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: 12,
+                    paddingVertical: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
-                  <Package size={20} color="#6b7280" />
-                  <Text className="text-gray-700 font-semibold ml-2">{t('changeProduct')}</Text>
+                  <Package size={18} color="#6b7280" strokeWidth={2.5} />
+                  <Text style={{ color: '#374151', fontWeight: '600', marginLeft: 8, fontSize: 14 }}>
+                    {t('changeProduct')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
                 onPress={() => setShowProductModal(true)}
-                className="bg-blue-50 rounded-xl py-4 flex-row items-center justify-center border-2 border-dashed border-blue-200"
+                style={{
+                  backgroundColor: '#eff6ff',
+                  borderRadius: 14,
+                  paddingVertical: 18,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderStyle: 'dashed',
+                  borderColor: '#3b82f6'
+                }}
               >
-                <Plus size={24} color="#3b82f6" />
-                <Text className="text-blue-600 font-bold ml-2">{t('addProduct')}</Text>
+                <Plus size={22} color="#3b82f6" strokeWidth={2.5} />
+                <Text style={{ color: '#3b82f6', fontWeight: '700', marginLeft: 8, fontSize: 15 }}>
+                  {t('addProduct')}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
       </ScrollView>
 
-      {/* Modal de sélection de produit */}
+      {/* Modal moderne de sélection de produit */}
       <Modal
         visible={showProductModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowProductModal(false)}
       >
-        <View className="flex-1 bg-black/50">
-          <View className="flex-1 mt-20 bg-white rounded-t-3xl">
-            <View className="p-5 border-b border-gray-200 flex-row items-center justify-between">
-              <Text className="text-xl font-bold">{t('chooseProduct')}</Text>
-              <TouchableOpacity onPress={() => setShowProductModal(false)}>
-                <X size={24} color="#000" />
-              </TouchableOpacity>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end' }}>
+          <TouchableOpacity 
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+            activeOpacity={1} 
+            onPress={() => setShowProductModal(false)}
+          />
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            height: '85%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 16,
+            elevation: 20
+          }}>
+            {/* Header moderne */}
+            <View style={{
+              paddingHorizontal: 20,
+              paddingTop: 20,
+              paddingBottom: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: '#f3f4f6'
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 4 }}>
+                    {t('chooseProduct')}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6b7280', fontWeight: '500' }}>
+                    {myProducts.length} {myProducts.length > 1 ? 'produits' : 'produit'}
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => setShowProductModal(false)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={20} color="#111827" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
             </View>
             
-            <ScrollView className="flex-1 p-5">
+            <ScrollView 
+              style={{ flex: 1 }} 
+              contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+              showsVerticalScrollIndicator={true}
+            >
               {myProducts.length === 0 ? (
-                <View className="items-center justify-center py-12">
-                  <Package size={48} color="#d1d5db" />
-                  <Text className="text-gray-400 mt-4">{t('noProductFound')}</Text>
-                  <Text className="text-gray-400 text-sm">{t('createProductsFirst')}</Text>
+                <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+                  <View style={{
+                    width: 80,
+                    height: 80,
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: 40,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16
+                  }}>
+                    <Package size={40} color="#9ca3af" strokeWidth={2} />
+                  </View>
+                  <Text style={{ color: '#111827', fontSize: 18, fontWeight: '700', marginBottom: 6 }}>
+                    {t('noProductFound')}
+                  </Text>
+                  <Text style={{ color: '#6b7280', fontSize: 14, textAlign: 'center' }}>
+                    {t('createProductsFirst')}
+                  </Text>
                 </View>
               ) : (
                 myProducts.map((product) => (
@@ -280,21 +481,53 @@ export default function EditVideoPage() {
                       setSelectedProductId(product.id)
                       setShowProductModal(false)
                     }}
-                    className={`flex-row items-center bg-gray-50 rounded-xl p-3 mb-3 ${
-                      selectedProductId === product.id ? 'border-2 border-blue-500' : ''
-                    }`}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: selectedProductId === product.id ? '#eff6ff' : '#f9fafb',
+                      borderRadius: 16,
+                      padding: 12,
+                      marginBottom: 10,
+                      borderWidth: 2,
+                      borderColor: selectedProductId === product.id ? '#3b82f6' : 'transparent',
+                      shadowColor: selectedProductId === product.id ? '#3b82f6' : '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: selectedProductId === product.id ? 0.15 : 0.03,
+                      shadowRadius: 4,
+                      elevation: selectedProductId === product.id ? 4 : 1
+                    }}
                   >
                     <Image
                       source={{ uri: product.image_url }}
-                      className="w-16 h-16 rounded-lg"
+                      style={{ width: 70, height: 70, borderRadius: 14 }}
                     />
-                    <View className="flex-1 ml-3">
-                      <Text className="font-bold text-gray-900">{product.name}</Text>
-                      <Text className="text-sm text-gray-600">{product.price} DH</Text>
+                    <View style={{ flex: 1, marginLeft: 14 }}>
+                      <Text style={{ 
+                        fontWeight: '700', 
+                        color: '#111827', 
+                        fontSize: 15,
+                        marginBottom: 4
+                      }} numberOfLines={2}>
+                        {product.name}
+                      </Text>
+                      <Text style={{ 
+                        fontSize: 16, 
+                        color: '#3b82f6', 
+                        fontWeight: '800' 
+                      }}>
+                        {product.price} DH
+                      </Text>
                     </View>
                     {selectedProductId === product.id && (
-                      <View className="bg-blue-500 p-2 rounded-full">
-                        <Save size={16} color="#fff" />
+                      <View style={{
+                        width: 32,
+                        height: 32,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 16,
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Save size={16} color="#fff" strokeWidth={2.5} />
                       </View>
                     )}
                   </TouchableOpacity>

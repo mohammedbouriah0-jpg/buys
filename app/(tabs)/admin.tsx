@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { Shield, CheckCircle, Users, AlertCircle, Receipt } from 'lucide-react-native';
+import { Shield, CheckCircle, Users, AlertCircle, Receipt, Bell, Headphones, Ticket } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/lib/auth-context';
@@ -69,126 +69,473 @@ export default function AdminPage() {
     );
   }
 
-  const ActionCard = ({ icon: Icon, title, subtitle, color, badge, onPress }: any) => (
-    <TouchableOpacity
-      onPress={onPress}
-      className="rounded-2xl p-6 mb-4 shadow-lg"
-      style={{ backgroundColor: color }}
-    >
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="bg-white/20 p-4 rounded-full">
-          <Icon size={32} color="white" strokeWidth={2.5} />
-        </View>
-        {badge > 0 && (
-          <View className="bg-red-500 px-3 py-1 rounded-full">
-            <Text className="text-white font-bold">{badge}</Text>
-          </View>
-        )}
-      </View>
-      <Text className="text-white text-xl font-bold mb-1">{title}</Text>
-      <Text className="text-white/80 text-sm">{subtitle}</Text>
-    </TouchableOpacity>
-  );
+
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white pt-12 pb-8 px-6 border-b border-gray-200">
-        <View className={`flex-row items-center mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <View className={`bg-gray-100 p-3 rounded-full ${isRTL ? 'ml-3' : 'mr-3'}`}>
-            <Shield size={28} color="#000" strokeWidth={2.5} />
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      {/* Header moderne */}
+      <View style={{
+        backgroundColor: '#ffffff',
+        paddingTop: 48,
+        paddingBottom: 18,
+        paddingHorizontal: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3
+      }}>
+        <View style={{ 
+          flexDirection: isRTL ? 'row-reverse' : 'row',
+          alignItems: 'center',
+          marginBottom: 6
+        }}>
+          <View style={{
+            backgroundColor: '#f3f4f6',
+            padding: 8,
+            borderRadius: 12,
+            marginRight: isRTL ? 0 : 10,
+            marginLeft: isRTL ? 10 : 0
+          }}>
+            <Shield size={22} color="#111827" strokeWidth={2.5} />
           </View>
           <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-            <Text className="text-gray-900 text-2xl font-bold" style={{ textAlign: isRTL ? 'right' : 'left' }}>{t('administration')}</Text>
-            <Text className="text-gray-500 text-sm" style={{ textAlign: isRTL ? 'right' : 'left' }}>{t('controlPanel')}</Text>
+            <Text style={{ 
+              color: '#111827',
+              fontSize: 22,
+              fontWeight: '900',
+              letterSpacing: 0.5,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>{t('administration')}</Text>
+            <Text style={{ 
+              color: '#6b7280',
+              fontSize: 12,
+              fontWeight: '600',
+              textAlign: isRTL ? 'right' : 'left'
+            }}>{t('controlPanel')}</Text>
           </View>
         </View>
       </View>
 
       <ScrollView
-        className="flex-1 px-6 pt-6"
+        style={{ flex: 1, backgroundColor: '#f8fafc' }}
+        contentContainerStyle={{ padding: 12, paddingTop: 16 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Actions rapides */}
-        <Text className="text-xl font-bold text-gray-800 mb-4" style={{ textAlign: isRTL ? 'right' : 'left' }}>{t('quickActions')}</Text>
+        {/* Actions rapides - Cards modernes */}
+        <Text style={{ 
+          fontSize: 16,
+          fontWeight: '800',
+          color: '#111827',
+          marginBottom: 12,
+          textAlign: isRTL ? 'right' : 'left'
+        }}>{t('quickActions')}</Text>
 
-        <ActionCard
-          icon={CheckCircle}
-          title={t('verifications')}
-          subtitle={t('approveShops')}
-          color="#f97316"
-          badge={stats?.pending_verifications || 0}
+        {/* Vérifications */}
+        <TouchableOpacity
           onPress={() => router.push('/admin/verifications')}
-        />
+          style={{
+            backgroundColor: '#f97316',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 10,
+            shadowColor: '#f97316',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <CheckCircle size={24} color="#ffffff" strokeWidth={2.5} />
+            </View>
+            {(stats?.pending_verifications || 0) > 0 && (
+              <View style={{
+                backgroundColor: '#dc2626',
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 10,
+                minWidth: 28,
+                alignItems: 'center'
+              }}>
+                <Text style={{ 
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: '800'
+                }}>{stats?.pending_verifications}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>{t('verifications')}</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>{t('approveShops')}</Text>
+        </TouchableOpacity>
 
-        <ActionCard
-          icon={Users}
-          title={t('userManagement')}
-          subtitle={t('manageAllUsers')}
-          color="#10b981"
-          badge={0}
+        {/* Gestion des comptes */}
+        <TouchableOpacity
           onPress={() => router.push('/admin/users')}
-        />
+          style={{
+            backgroundColor: '#10b981',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 10,
+            shadowColor: '#10b981',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <Users size={24} color="#ffffff" strokeWidth={2.5} />
+            </View>
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>{t('userManagement')}</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>{t('manageAllUsers')}</Text>
+        </TouchableOpacity>
 
-        <ActionCard
-          icon={Receipt}
-          title="Paramètres de paiement"
-          subtitle="Configuration Baridimob/CCP"
-          color="#8b5cf6"
-          badge={0}
+        {/* Paramètres de paiement */}
+        <TouchableOpacity
           onPress={() => router.push('/admin/payment-settings')}
-        />
-
-        <View className="flex-row mb-4">
-          <TouchableOpacity
-            onPress={() => router.push('/admin/shops')}
-            className="flex-1 bg-blue-500 rounded-2xl p-5 mr-2"
-            style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 }}
-          >
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="bg-white/20 p-3 rounded-full">
-                <Ionicons name="storefront" size={24} color="white" />
-              </View>
-              <Text className="text-white text-3xl font-bold">{stats?.total_shops || 0}</Text>
+          style={{
+            backgroundColor: '#8b5cf6',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 10,
+            shadowColor: '#8b5cf6',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <Receipt size={24} color="#ffffff" strokeWidth={2.5} />
             </View>
-            <Text className="text-white text-base font-bold">{t('shops')}</Text>
-            <Text className="text-white/80 text-xs mt-1">{t('viewAllShops')}</Text>
-          </TouchableOpacity>
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>Paramètres de paiement</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>Configuration Baridimob/CCP</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => router.push('/admin/videos')}
-            className="flex-1 bg-purple-500 rounded-2xl p-5 ml-2"
-            style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 }}
-          >
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="bg-white/20 p-3 rounded-full">
-                <Ionicons name="videocam" size={24} color="white" />
-              </View>
-              <Text className="text-white text-3xl font-bold">{stats?.total_videos || 0}</Text>
+        {/* Codes Promo & Influenceurs */}
+        <TouchableOpacity
+          onPress={() => router.push('/admin/promo-codes')}
+          style={{
+            backgroundColor: '#a855f7',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 10,
+            shadowColor: '#a855f7',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <Ticket size={24} color="#ffffff" strokeWidth={2.5} />
             </View>
-            <Text className="text-white text-base font-bold">{t('videos')}</Text>
-            <Text className="text-white/80 text-xs mt-1">{t('contentModeration')}</Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>Codes Promo</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>Gérer les codes & influenceurs</Text>
+        </TouchableOpacity>
+
+        {/* Gestion des catégories */}
+        <TouchableOpacity
+          onPress={() => router.push('/admin/categories')}
+          style={{
+            backgroundColor: '#06b6d4',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 12,
+            shadowColor: '#06b6d4',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <Ionicons name="grid" size={24} color="white" />
+            </View>
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>{t('categories')}</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>{t('manageCategories')}</Text>
+        </TouchableOpacity>
+
+        {/* Notifications push */}
+        <TouchableOpacity
+          onPress={() => router.push('/admin/notifications')}
+          style={{
+            backgroundColor: '#ec4899',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 10,
+            shadowColor: '#ec4899',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <Bell size={24} color="#ffffff" strokeWidth={2.5} />
+            </View>
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>Notifications</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>Envoyer une notification à tous</Text>
+        </TouchableOpacity>
+
+        {/* Configuration Support */}
+        <TouchableOpacity
+          onPress={() => router.push('/admin/support')}
+          style={{
+            backgroundColor: '#14b8a6',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 10,
+            shadowColor: '#14b8a6',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <Headphones size={24} color="#ffffff" strokeWidth={2.5} />
+            </View>
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>Configuration Support</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>Gérer les infos de contact</Text>
+        </TouchableOpacity>
+
+        {/* Stats - Vidéos uniquement */}
+        <TouchableOpacity
+          onPress={() => router.push('/admin/videos')}
+          style={{
+            backgroundColor: '#a855f7',
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 12,
+            shadowColor: '#a855f7',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.18,
+            shadowRadius: 6,
+            elevation: 5
+          }}
+        >
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              padding: 10,
+              borderRadius: 12
+            }}>
+              <Ionicons name="videocam" size={24} color="white" />
+            </View>
+            <Text style={{ 
+              color: '#ffffff',
+              fontSize: 28,
+              fontWeight: '900'
+            }}>{stats?.total_videos || 0}</Text>
+          </View>
+          <Text style={{ 
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: '800',
+            marginBottom: 3
+          }}>{t('videos')}</Text>
+          <Text style={{ 
+            color: 'rgba(255, 255, 255, 0.85)',
+            fontSize: 12,
+            fontWeight: '600'
+          }}>{t('contentModeration')}</Text>
+        </TouchableOpacity>
 
         {/* Info système */}
-        <View className="bg-blue-50 rounded-xl p-4 mb-6">
-          <View className={`flex-row items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <Shield size={20} color="#3b82f6" strokeWidth={2.5} />
-            <View className={`flex-1 ${isRTL ? 'mr-3' : 'ml-3'}`}>
-              <Text className="text-blue-800 font-semibold mb-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+        <View style={{
+          backgroundColor: '#eff6ff',
+          borderRadius: 12,
+          padding: 12,
+          borderLeftWidth: 3,
+          borderLeftColor: '#3b82f6'
+        }}>
+          <View style={{ 
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'flex-start'
+          }}>
+            <View style={{
+              backgroundColor: '#dbeafe',
+              padding: 6,
+              borderRadius: 8,
+              marginRight: isRTL ? 0 : 10,
+              marginLeft: isRTL ? 10 : 0
+            }}>
+              <Shield size={18} color="#3b82f6" strokeWidth={2.5} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ 
+                color: '#1e40af',
+                fontSize: 13,
+                fontWeight: '800',
+                marginBottom: 3,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>
                 {t('adminSystem')}
               </Text>
-              <Text className="text-blue-600 text-sm" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+              <Text style={{ 
+                color: '#3b82f6',
+                fontSize: 11,
+                lineHeight: 16,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>
                 {t('adminSystemDesc')}
               </Text>
             </View>
           </View>
         </View>
 
-        <View className="h-8" />
+        <View style={{ height: 16 }} />
       </ScrollView>
     </View>
   );

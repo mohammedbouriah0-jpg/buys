@@ -17,19 +17,23 @@ export interface User {
   email: string;
   type: UserType;
   name: string;
+  email_verified?: boolean;
   avatar?: string;
   phone?: string;
   address?: string;
+  wilaya?: string;
   shopId?: number;
   shopName?: string;
   shopDescription?: string;
   shopLogo?: string;
   verified?: boolean;
+  authProvider?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, type?: UserType) => Promise<boolean>;
+  loginWithToken: (token: string, userData: User) => Promise<boolean>;
   signup: (data: SignupData) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -100,10 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await authAPI.login(email, password, type);
       await saveUser(result.user);
 
-      // Enregistrer le token push si l'utilisateur est une boutique
-      if (result.user.type === 'shop' && result.token) {
+      if (!result.user.email_verified) {
+        setTimeout(() => {
+          router.replace('/verify-email');
+        }, 100);
+        return true;
+      }
+
+      if ((result.user.type === 'shop' || result.user.type === 'boutique') && result.token) {
         registerPushToken(result.token).catch(err => {
-          console.error('Erreur enregistrement push token:', err);
+          console.log('Push token registration failed:', err.message);
         });
       }
 
@@ -114,10 +124,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Connexion avec un token existant (pour Google Auth)
+  const loginWithToken = async (token: string, userData: User): Promise<boolean> => {
+    try {
+      await AsyncStorage.setItem("auth_token", token);
+      await saveUser(userData);
+
+      if (userData.type === 'shop' && token) {
+        registerPushToken(token).catch(err => {
+          console.log('Push token error:', err.message);
+        });
+      }
+
+      return true;
+    } catch (e) {
+      console.error("loginWithToken error:", e);
+      return false;
+    }
+  };
+
   const signup = async (data: SignupData): Promise<boolean> => {
     try {
       const result = await authAPI.register(data);
       await saveUser(result.user);
+      
+      // Rediriger vers la vérification email
+      router.replace('/verify-email');
+      
       return true;
     } catch (e) {
       console.error("Signup error:", e);
@@ -144,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         login,
+        loginWithToken,
         signup,
         logout,
         refreshUser,

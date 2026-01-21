@@ -99,33 +99,72 @@ export default function AdminVideos() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white pt-12 pb-6 px-6 border-b border-gray-200">
-        <View className={`flex-row items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      {/* Header moderne */}
+      <View style={{
+        backgroundColor: '#ffffff',
+        paddingTop: 48,
+        paddingBottom: 16,
+        paddingHorizontal: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3
+      }}>
+        <View style={{ 
+          flexDirection: isRTL ? 'row-reverse' : 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-gray-100 p-2 rounded-full"
+            style={{
+              backgroundColor: '#f3f4f6',
+              padding: 8,
+              borderRadius: 12
+            }}
           >
-            <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={24} color="#000" />
+            <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={22} color="#111827" />
           </TouchableOpacity>
-          <View className={`flex-1 ${isRTL ? 'mr-4' : 'ml-4'}`}>
-            <Text className="text-black text-xl font-bold">{t('videoModeration')}</Text>
-            <Text className="text-gray-600 text-sm">{videos.length} {t('videosCount')}{videos.length > 1 ? 's' : ''}</Text>
+          <View style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
+            <Text style={{ 
+              color: '#111827',
+              fontSize: 20,
+              fontWeight: '900',
+              letterSpacing: 0.5
+            }}>{t('videoModeration')}</Text>
+            <Text style={{ 
+              color: '#6b7280',
+              fontSize: 12,
+              fontWeight: '600'
+            }}>{videos.length} {t('videosCount')}{videos.length > 1 ? 's' : ''}</Text>
           </View>
         </View>
       </View>
 
       <ScrollView
-        className="flex-1 px-6 pt-6"
+        style={{ flex: 1, paddingHorizontal: 12, paddingTop: 16 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {videos.map((video) => (
-          <View key={video.id} className="bg-white rounded-2xl mb-4 overflow-hidden shadow-sm">
-            {/* Vidéo */}
-            <View className="relative bg-black" style={{ height: 300 }}>
+          <View key={video.id} style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 16,
+            marginBottom: 12,
+            overflow: 'hidden',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            elevation: 3
+          }}>
+            {/* Vidéo avec overlay */}
+            <View style={{ position: 'relative', backgroundColor: '#000', height: 380 }}>
               {playingVideo === video.id ? (
                 <Video
                   source={{ uri: `${API_URL.replace('/api', '')}${video.video_url}` }}
@@ -147,90 +186,153 @@ export default function AdminVideos() {
                   />
                   <TouchableOpacity
                     onPress={() => setPlayingVideo(video.id)}
-                    className="absolute inset-0 items-center justify-center bg-black/30"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(0,0,0,0.3)'
+                    }}
                   >
-                    <View className="bg-white/90 p-4 rounded-full">
-                      <Ionicons name="play" size={32} color="#000" />
+                    <View style={{
+                      backgroundColor: 'rgba(255,255,255,0.95)',
+                      padding: 18,
+                      borderRadius: 50
+                    }}>
+                      <Ionicons name="play" size={36} color="#000" />
                     </View>
                   </TouchableOpacity>
                 </>
               )}
+              
+              {/* Badge signalements */}
+              {video.reports_count > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  backgroundColor: '#dc2626',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  flexDirection: 'row',
+                  alignItems: 'center'
+                }}>
+                  <Ionicons name="warning" size={14} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 4 }}>
+                    {video.reports_count} {t('reports')}
+                  </Text>
+                </View>
+              )}
             </View>
 
-            {/* Info */}
-            <View className="p-4">
-              {/* Titre et description */}
-              <Text className="text-lg font-bold text-gray-800 mb-2">{video.title}</Text>
-              {video.description && (
-                <Text className="text-gray-600 mb-3">{video.description}</Text>
-              )}
+            {/* Contenu ultra-compact */}
+            <View style={{ padding: 10 }}>
+              {/* Titre */}
+              <Text style={{
+                fontSize: 15,
+                fontWeight: '800',
+                color: '#111827',
+                marginBottom: 6
+              }}>{video.title}</Text>
 
-              {/* Boutique */}
-              <View className="flex-row items-center mb-3 pb-3 border-b border-gray-100">
-                <View className="bg-purple-100 p-2 rounded-full mr-3">
-                  <Ionicons name="storefront" size={20} color="#9333ea" />
+              {/* Boutique + Stats en une ligne */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 8,
+                gap: 8
+              }}>
+                {/* Boutique */}
+                <View style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#f3f4f6',
+                  paddingVertical: 6,
+                  paddingHorizontal: 8,
+                  borderRadius: 8
+                }}>
+                  <Ionicons name="storefront" size={14} color="#7c3aed" />
+                  <Text style={{ 
+                    fontSize: 11, 
+                    fontWeight: '700', 
+                    color: '#374151',
+                    marginLeft: 4,
+                    flex: 1
+                  }} numberOfLines={1}>
+                    {video.shop_name}
+                  </Text>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-gray-800 font-semibold">{video.shop_name}</Text>
-                  <Text className="text-gray-500 text-sm">{video.shop_owner_email}</Text>
+
+                {/* Stats inline */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#fef2f2',
+                  paddingVertical: 6,
+                  paddingHorizontal: 8,
+                  borderRadius: 8
+                }}>
+                  <Ionicons name="heart" size={14} color="#ef4444" />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#dc2626', marginLeft: 3 }}>
+                    {video.likes_count || 0}
+                  </Text>
+                </View>
+
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#eff6ff',
+                  paddingVertical: 6,
+                  paddingHorizontal: 8,
+                  borderRadius: 8
+                }}>
+                  <Ionicons name="chatbubble" size={14} color="#3b82f6" />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#2563eb', marginLeft: 3 }}>
+                    {video.comments_count || 0}
+                  </Text>
                 </View>
               </View>
 
-              {/* Produit lié */}
-              {video.product_name && (
-                <View className="flex-row items-center mb-3 pb-3 border-b border-gray-100">
-                  <View className="bg-blue-100 p-2 rounded-full mr-3">
-                    <Ionicons name="pricetag" size={20} color="#3b82f6" />
-                  </View>
-                  <Text className="text-gray-700 flex-1">{video.product_name}</Text>
-                </View>
-              )}
-
-              {/* Statistiques */}
-              <View className={`flex-row mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <View className={`flex-1 bg-red-50 rounded-lg p-3 ${isRTL ? 'ml-2' : 'mr-2'}`}>
-                  <View className={`flex-row items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Ionicons name="heart" size={16} color="#ef4444" />
-                    <Text className={`text-red-700 font-bold ${isRTL ? 'mr-2' : 'ml-2'}`}>{video.likes_count || 0}</Text>
-                  </View>
-                  <Text className="text-red-600 text-xs mt-1">{t('likes')}</Text>
-                </View>
-
-                <View className="flex-1 bg-blue-50 rounded-lg p-3 mx-1">
-                  <View className={`flex-row items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Ionicons name="chatbubble" size={16} color="#3b82f6" />
-                    <Text className={`text-blue-700 font-bold ${isRTL ? 'mr-2' : 'ml-2'}`}>{video.comments_count || 0}</Text>
-                  </View>
-                  <Text className="text-blue-600 text-xs mt-1">{t('comments')}</Text>
-                </View>
-
-                {video.reports_count > 0 && (
-                  <View className={`flex-1 bg-orange-50 rounded-lg p-3 ${isRTL ? 'mr-2' : 'ml-2'}`}>
-                    <View className={`flex-row items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <Ionicons name="warning" size={16} color="#f97316" />
-                      <Text className={`text-orange-700 font-bold ${isRTL ? 'mr-2' : 'ml-2'}`}>{video.reports_count}</Text>
-                    </View>
-                    <Text className="text-orange-600 text-xs mt-1">{t('reports')}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Date */}
-              <View className={`flex-row items-center mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <Ionicons name="time-outline" size={16} color="#6b7280" />
-                <Text className={`text-gray-500 text-sm ${isRTL ? 'mr-2' : 'ml-2'}`}>
-                  {t('publishedOn')} {formatDate(video.created_at)}
+              {/* Date + Bouton supprimer en une ligne */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8
+              }}>
+                <Text style={{
+                  fontSize: 10,
+                  color: '#9ca3af',
+                  flex: 1
+                }} numberOfLines={1}>
+                  {formatDate(video.created_at)}
                 </Text>
-              </View>
 
-              {/* Actions */}
-              <TouchableOpacity
-                onPress={() => handleDelete(video.id, video.shop_name)}
-                className={`bg-red-500 rounded-xl py-3 flex-row items-center justify-center ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <Ionicons name="trash" size={20} color="white" />
-                <Text className={`text-white font-semibold ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('deleteVideo')}</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDelete(video.id, video.shop_name)}
+                  style={{
+                    backgroundColor: '#dc2626',
+                    borderRadius: 8,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Ionicons name="trash" size={14} color="white" />
+                  <Text style={{
+                    color: '#ffffff',
+                    fontSize: 12,
+                    fontWeight: '700',
+                    marginLeft: 4
+                  }}>Supprimer</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ))}

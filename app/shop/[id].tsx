@@ -26,8 +26,9 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react-native";
-import { shopsAPI, productsAPI } from "@/lib/api";
+import { shopsAPI, productsAPI, getMediaUrl } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { shareShop } from "@/lib/share-utils";
 
 const { width } = Dimensions.get("window");
 
@@ -44,10 +45,50 @@ export default function ShopPage() {
     "default"
   );
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     loadShopData();
   }, [id]);
+
+  // Fonction pour liker/unliker un produit
+  const handleLikeProduct = async (productId: number, event: any) => {
+    event.preventDefault(); // Empêcher la navigation vers le produit
+    event.stopPropagation();
+    
+    const isLiked = likedProducts.has(productId);
+    
+    // Optimistic update
+    setLikedProducts(prev => {
+      const newSet = new Set(prev);
+      if (isLiked) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+
+    try {
+      if (isLiked) {
+        await productsAPI.unlikeProduct(productId);
+      } else {
+        await productsAPI.likeProduct(productId);
+      }
+    } catch (error) {
+      // Revert on error
+      setLikedProducts(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.add(productId);
+        } else {
+          newSet.delete(productId);
+        }
+        return newSet;
+      });
+      console.error("Error toggling like:", error);
+    }
+  };
 
   const handleSubscribe = async () => {
     try {
@@ -70,11 +111,9 @@ export default function ShopPage() {
         productsAPI.getAll({ shop_id: Number(id) }),
       ]);
 
-      // Récupérer le nombre d'abonnés
       const subscribersCount = await shopsAPI.getSubscribersCount(id as string);
       shopData.subscribers_count = subscribersCount;
 
-      // Vérifier si l'utilisateur est abonné
       try {
         const subscriptionStatus = await shopsAPI.checkSubscription(id as string);
         setIsSubscribed(subscriptionStatus.is_subscribed);
@@ -116,9 +155,8 @@ export default function ShopPage() {
   const primaryColor = shop.primary_color || "#000000";
   const accentColor = shop.accent_color || "#3b82f6";
 
-  // Filtrer et trier les produits
   let filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    p.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (sortBy === "price_asc") {
@@ -131,7 +169,6 @@ export default function ShopPage() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Simple Header with custom color */}
       <View style={[styles.simpleHeader, { borderBottomColor: `${primaryColor}15` }]}>
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: `${primaryColor}10` }]}
@@ -139,41 +176,49 @@ export default function ShopPage() {
         >
           <ArrowLeft size={24} color={primaryColor} />
         </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.shareButton, { backgroundColor: `${primaryColor}10` }]}
+          onPress={() => {
+            shareShop({
+              shopId: Number(id),
+              shopName: shop.shop_name,
+              description: shop.description,
+            });
+          }}
+        >
+          <Share2 size={24} color={primaryColor} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* Shop Info Card */}
         <View style={styles.shopCard}>
-            {/* Logo with shadow */}
             <View style={styles.logoContainer}>
               {shop.logo_url ? (
-                <Image source={{ uri: shop.logo_url }} style={styles.logo} />
+                <Image source={{ uri: getMediaUrl(shop.logo_url) }} style={styles.logo} />
               ) : (
                 <View style={[styles.logo, styles.logoPlaceholder]}>
                   <ShoppingBag size={32} color="#9ca3af" />
                 </View>
               )}
-              {shop.verified && (
+              {!!shop.verified && (
                 <View style={[styles.verifiedBadgeCorner, { backgroundColor: accentColor }]}>
                   <Check size={12} color="#fff" />
                 </View>
               )}
             </View>
 
-            {/* Shop Name */}
             <Text style={styles.shopName}>{shop.shop_name}</Text>
             
-            {/* Description */}
             {shop.description && (
               <Text style={styles.description} numberOfLines={3}>
                 {shop.description}
               </Text>
             )}
 
-            {/* Subscribers Count with custom color */}
             <View style={styles.subscribersContainer}>
               <Text style={[styles.subscribersCount, { color: primaryColor }]}>
                 {formatNumber(shop.subscribers_count || 0)}
@@ -181,7 +226,6 @@ export default function ShopPage() {
               <Text style={styles.subscribersLabel}>{t("followers")}</Text>
             </View>
 
-            {/* Subscribe Button with custom color */}
             <TouchableOpacity
               style={[
                 styles.subscribeButton,
@@ -196,9 +240,7 @@ export default function ShopPage() {
             </TouchableOpacity>
           </View>
 
-        {/* Premium Search & Filters */}
         <View style={styles.filtersSection}>
-          {/* Search Bar with gradient */}
           <View style={styles.searchWrapper}>
             <View style={styles.searchContainer}>
               <Search size={20} color="#9ca3af" />
@@ -217,14 +259,12 @@ export default function ShopPage() {
             </View>
           </View>
 
-          {/* Filters Row */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.filtersScroll}
             contentContainerStyle={styles.filtersContent}
           >
-            {/* View Mode */}
             <View style={styles.viewModeContainer}>
               <TouchableOpacity
                 style={[
@@ -252,7 +292,6 @@ export default function ShopPage() {
               </TouchableOpacity>
             </View>
 
-            {/* Sort Chips */}
             <TouchableOpacity
               style={[
                 styles.filterChip,
@@ -322,7 +361,6 @@ export default function ShopPage() {
             </TouchableOpacity>
           </ScrollView>
 
-          {/* Results Count */}
           <View style={styles.resultsBar}>
             <Text style={styles.resultsCount}>
               {filteredProducts.length} {filteredProducts.length > 1 ? t("products") : t("product")}
@@ -330,7 +368,6 @@ export default function ShopPage() {
           </View>
         </View>
 
-        {/* Products */}
         <View style={styles.productsSection}>
           {filteredProducts.length === 0 ? (
             <View style={styles.emptyState}>
@@ -353,19 +390,25 @@ export default function ShopPage() {
                     <View style={styles.cardImageContainer}>
                       <Image
                         source={{
-                          uri:
-                            product.image_url ||
+                          uri: getMediaUrl(product.image_url) ||
                             "https://via.placeholder.com/200",
                         }}
                         style={styles.cardImage}
                       />
-                      {/* Quick Actions */}
-                      <View style={styles.cardActions}>
-                        <TouchableOpacity style={styles.cardActionBtn}>
-                          <Heart size={16} color="#fff" />
-                        </TouchableOpacity>
-                      </View>
-                      {/* Badge */}
+                      <TouchableOpacity 
+                        style={[
+                          styles.likeButton,
+                          likedProducts.has(product.id) && styles.likeButtonActive
+                        ]}
+                        onPress={(e) => handleLikeProduct(product.id, e)}
+                        activeOpacity={0.8}
+                      >
+                        <Heart 
+                          size={18} 
+                          color={likedProducts.has(product.id) ? "#fff" : "#ef4444"} 
+                          fill={likedProducts.has(product.id) ? "#fff" : "transparent"}
+                        />
+                      </TouchableOpacity>
                       {index < 3 && (
                         <View style={[styles.trendingBadge, { backgroundColor: accentColor }]}>
                           <Zap size={10} color="#fff" />
@@ -399,8 +442,7 @@ export default function ShopPage() {
                     <View style={styles.listImageContainer}>
                       <Image
                         source={{
-                          uri:
-                            product.image_url ||
+                          uri: getMediaUrl(product.image_url) ||
                             "https://via.placeholder.com/200",
                         }}
                         style={styles.listImage}
@@ -411,8 +453,18 @@ export default function ShopPage() {
                         <Text style={styles.listName} numberOfLines={2}>
                           {product.name}
                         </Text>
-                        <TouchableOpacity style={styles.listHeartBtn}>
-                          <Heart size={18} color="#d1d5db" />
+                        <TouchableOpacity 
+                          style={[
+                            styles.listHeartBtn,
+                            likedProducts.has(product.id) && styles.listHeartBtnActive
+                          ]}
+                          onPress={(e) => handleLikeProduct(product.id, e)}
+                        >
+                          <Heart 
+                            size={18} 
+                            color={likedProducts.has(product.id) ? "#fff" : "#ef4444"} 
+                            fill={likedProducts.has(product.id) ? "#fff" : "transparent"}
+                          />
                         </TouchableOpacity>
                       </View>
                       {product.description && (
@@ -462,68 +514,62 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  // Simple Header
   simpleHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 50 : 40,
-    paddingBottom: 12,
+    paddingHorizontal: 12,
+    paddingTop: Platform.OS === "ios" ? 48 : 36,
+    paddingBottom: 8,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f3f4f6",
   },
-  headerActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  shareButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f3f4f6",
   },
-  // Shop Card - COMPACT & BEAUTIFUL
   shopCard: {
     backgroundColor: "#fff",
-    marginHorizontal: 14,
-    marginTop: 12,
-    marginBottom: 6,
-    borderRadius: 18,
-    padding: 16,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    borderRadius: 14,
+    padding: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   logoContainer: {
     alignSelf: "center",
-    marginBottom: 8,
+    marginBottom: 6,
     position: "relative",
   },
   logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 3,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
     borderColor: "#fff",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   logoPlaceholder: {
     backgroundColor: "#f3f4f6",
@@ -541,117 +587,68 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 2,
     borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 2,
-    elevation: 2,
   },
   shopName: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  description: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "center",
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  // Stats Grid - COMPACT
-  statsGrid: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: "center",
-    padding: 8,
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-  },
-  statIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  statNumber: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "800",
     color: "#111827",
-    marginBottom: 1,
+    textAlign: "center",
+    marginBottom: 2,
   },
-  statLabel: {
-    fontSize: 10,
-    color: "#6b7280",
-    fontWeight: "600",
-  },
-  // Subscribers - COMPACT
-  subscribersContainer: {
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  subscribersCount: {
-    fontSize: 22,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-  },
-  subscribersLabel: {
+  description: {
     fontSize: 12,
     color: "#6b7280",
-    fontWeight: "600",
-    marginTop: 1,
+    textAlign: "center",
+    lineHeight: 16,
+    marginBottom: 8,
   },
-  // Subscribe Button - COMPACT
+  subscribersContainer: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  subscribersCount: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  subscribersLabel: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontWeight: "500",
+    marginTop: 0,
+  },
   subscribeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 14,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  subscribedButton: {
-    backgroundColor: "#6b7280",
-    shadowColor: "#6b7280",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   subscribeButtonText: {
-    fontSize: 14,
-    fontWeight: "900",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#fff",
-    letterSpacing: 0.3,
   },
-  // Filters Section - ULTRA COMPACT
   filtersSection: {
     backgroundColor: "#fff",
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingTop: 6,
+    paddingBottom: 4,
   },
   searchWrapper: {
-    paddingHorizontal: 14,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    marginBottom: 6,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
-    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    paddingVertical: 6,
   },
   searchInput: {
     flex: 1,
@@ -691,11 +688,6 @@ const styles = StyleSheet.create({
   },
   viewModeBtnActive: {
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
   },
   filterChip: {
     flexDirection: "row",
@@ -710,11 +702,6 @@ const styles = StyleSheet.create({
   },
   filterChipActive: {
     borderColor: "transparent",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
-    elevation: 2,
   },
   filterChipIcon: {
     fontSize: 14,
@@ -740,10 +727,9 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontWeight: "600",
   },
-  // Products Section - ULTRA COMPACT
   productsSection: {
-    padding: 10,
-    paddingBottom: 24,
+    padding: 8,
+    paddingBottom: 20,
   },
   emptyState: {
     alignItems: "center",
@@ -761,22 +747,21 @@ const styles = StyleSheet.create({
     color: "#d1d5db",
     marginTop: 6,
   },
-  // Grid View - COMPACT & BEAUTIFUL
   productsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
   },
   premiumCard: {
-    width: (width - 36) / 2,
+    width: (width - 30) / 2,
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 10,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
   },
   cardImageContainer: {
     position: "relative",
@@ -787,9 +772,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     backgroundColor: "#f3f4f6",
-  },
-  cardGradient: {
-    ...StyleSheet.absoluteFillObject,
   },
   cardActions: {
     position: "absolute",
@@ -803,11 +785,28 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  likeButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1.5,
+    borderColor: "#fee2e2",
+  },
+  likeButtonActive: {
+    backgroundColor: "#ef4444",
+    borderColor: "#ef4444",
   },
   trendingBadge: {
     position: "absolute",
@@ -819,28 +818,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 2,
   },
   trendingText: {
     fontSize: 9,
     fontWeight: "900",
     color: "#fff",
-    letterSpacing: 0.3,
   },
   cardContent: {
-    padding: 10,
+    padding: 8,
   },
   cardName: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "600",
     color: "#111827",
-    marginBottom: 6,
-    minHeight: 36,
-    lineHeight: 18,
+    marginBottom: 4,
+    minHeight: 30,
+    lineHeight: 15,
   },
   cardFooter: {
     flexDirection: "row",
@@ -848,9 +841,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardPrice: {
-    fontSize: 15,
-    fontWeight: "900",
-    letterSpacing: -0.3,
+    fontSize: 14,
+    fontWeight: "800",
   },
   cardRating: {
     flexDirection: "row",
@@ -862,37 +854,33 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#6b7280",
   },
-  // List View - COMPACT
   productsList: {
     gap: 10,
   },
   premiumListCard: {
     flexDirection: "row",
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 10,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
   },
   listImageContainer: {
     position: "relative",
-    width: 100,
-    height: 100,
+    width: 85,
+    height: 85,
   },
   listImage: {
     width: "100%",
     height: "100%",
     backgroundColor: "#f3f4f6",
   },
-  listImageGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
   listContent: {
     flex: 1,
-    padding: 12,
+    padding: 10,
     justifyContent: "space-between",
   },
   listHeader: {
@@ -903,19 +891,30 @@ const styles = StyleSheet.create({
   },
   listName: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: "800",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#111827",
-    lineHeight: 19,
-    marginRight: 6,
+    lineHeight: 17,
+    marginRight: 4,
   },
   listHeartBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#f9fafb",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#fee2e2",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  listHeartBtnActive: {
+    backgroundColor: "#ef4444",
+    borderColor: "#ef4444",
   },
   listDescription: {
     fontSize: 12,
@@ -929,9 +928,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   listPrice: {
-    fontSize: 16,
-    fontWeight: "900",
-    letterSpacing: -0.3,
+    fontSize: 14,
+    fontWeight: "800",
   },
   listRating: {
     flexDirection: "row",

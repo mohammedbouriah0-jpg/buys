@@ -1,5 +1,7 @@
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, Image, Modal, FlatList, ActivityIndicator } from "react-native"
+import { View, Text, TextInput, TouchableOpacity, Alert, Image, Modal, FlatList, ActivityIndicator, ScrollView } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useState, useEffect } from "react"
+import { useKeyboardScroll } from "@/hooks/useKeyboardScroll"
 import { router } from "expo-router"
 import { useAuth } from "@/lib/auth-context"
 import { productsAPI, categoriesAPI } from "@/lib/api"
@@ -7,6 +9,7 @@ import * as ImagePicker from "expo-image-picker"
 import { X, Camera, Grid3X3 } from "lucide-react-native"
 import { VerificationGuard } from "@/components/verification-guard"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { VariantManager } from "@/components/variant-manager"
 
 interface Category {
   id: number
@@ -17,6 +20,7 @@ interface Category {
 export default function AddProductPage() {
   const { user } = useAuth()
   const { t, isRTL } = useLanguage()
+  const insets = useSafeAreaInsets()
   const [name, setName] = useState("")
   const [price, setPrice] = useState("")
   const [description, setDescription] = useState("")
@@ -31,21 +35,14 @@ export default function AddProductPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(false)
   
-  // Variants
+  // Variants - nouveau format flexible
   const [hasVariants, setHasVariants] = useState(false)
-  const [variants, setVariants] = useState<Array<{size: string, color: string, stock: string}>>([])
+  const [variants, setVariants] = useState<Array<{attributes: {[key: string]: string}, stock: string}>>([])
   
-  const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
-  const ALL_COLORS = [
-    { name: 'Noir', value: '#000000' },
-    { name: 'Blanc', value: '#FFFFFF' },
-    { name: 'Rouge', value: '#FF0000' },
-    { name: 'Bleu', value: '#0000FF' },
-    { name: 'Vert', value: '#00FF00' },
-    { name: 'Jaune', value: '#FFFF00' },
-    { name: 'Rose', value: '#FFC0CB' },
-    { name: 'Gris', value: '#808080' },
-  ]
+  // Keyboard handling - solution pro
+  const { scrollViewRef, keyboardHeight, scrollToInput } = useKeyboardScroll()
+  
+
 
   useEffect(() => {
     if (showCategoryModal) {
@@ -94,19 +91,7 @@ export default function AddProductPage() {
     setImages(images.filter((_, i) => i !== index))
   }
 
-  const addVariant = () => {
-    setVariants([...variants, { size: '', color: '', stock: '0' }])
-  }
-  
-  const removeVariant = (index: number) => {
-    setVariants(variants.filter((_, i) => i !== index))
-  }
-  
-  const updateVariant = (index: number, field: string, value: any) => {
-    const newVariants = [...variants]
-    newVariants[index] = { ...newVariants[index], [field]: value }
-    setVariants(newVariants)
-  }
+
 
   const handleSave = async () => {
     if (!name || !price) {
@@ -137,8 +122,7 @@ export default function AddProductPage() {
       
       if (hasVariants) {
         formData.append("variants", JSON.stringify(variants.map(v => ({
-          size: v.size,
-          color: v.color,
+          attributes: v.attributes,
           stock: parseInt(v.stock) || 0
         }))))
       }
@@ -170,267 +154,482 @@ export default function AddProductPage() {
 
   return (
     <VerificationGuard>
-    <View className="flex-1 bg-white" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
-      <View className="flex-row items-center justify-between p-4 pt-12 border-b border-gray-200" style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-        <Text className="text-xl font-bold" style={{ textAlign: isRTL ? 'right' : 'left' }}>{t("newProduct")}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <X size={24} color="#000" />
+    <View style={{ flex: 1, backgroundColor: '#f9fafb', direction: isRTL ? 'rtl' : 'ltr' }}>
+      {/* Header compact */}
+      <View style={{ 
+        backgroundColor: '#ffffff',
+        paddingTop: 48,
+        paddingBottom: 14,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <Text style={{ 
+          fontSize: 24,
+          fontWeight: '800',
+          color: '#111827',
+          textAlign: isRTL ? 'right' : 'left'
+        }}>{t("newProduct")}</Text>
+        <TouchableOpacity 
+          onPress={() => router.back()}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: '#f3f4f6',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <X size={20} color="#374151" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 p-4">
-        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', width: '100%' }}>
-          <Text className="text-sm font-semibold text-gray-700 mb-2">{t("productImages")} *</Text>
-        </View>
-        <TouchableOpacity
-          onPress={pickImages}
-          className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-8 items-center mb-4"
-        >
-          <Camera size={48} color="#9ca3af" />
-          <Text className="text-gray-600 mt-2">{t("addImages")}</Text>
-          <Text className="text-gray-400 text-xs">{images.length}/5 {t("imagesCount")}</Text>
-        </TouchableOpacity>
-
-        {images.length > 0 && (
-          <View className="flex-row flex-wrap mb-4">
+      <ScrollView 
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom + 80, 350) + keyboardHeight }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Upload d'images moderne */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ 
+            fontSize: 13,
+            fontWeight: '700',
+            color: '#111827',
+            marginBottom: 12,
+            textAlign: isRTL ? 'right' : 'left'
+          }}>{t("productImages")} *</Text>
+          
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {/* Images existantes */}
             {images.map((uri, index) => (
-              <View key={index} className="relative mr-2 mb-2">
-                <Image source={{ uri }} className="w-20 h-20 rounded-lg" />
+              <View key={index} style={{ position: 'relative' }}>
+                <Image 
+                  source={{ uri }} 
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 16,
+                    backgroundColor: '#f3f4f6'
+                  }}
+                />
                 <TouchableOpacity
                   onPress={() => removeImage(index)}
-                  className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    backgroundColor: '#ef4444',
+                    borderRadius: 12,
+                    width: 24,
+                    height: 24,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 4
+                  }}
                 >
-                  <X size={16} color="#fff" />
+                  <X size={14} color="#fff" strokeWidth={3} />
                 </TouchableOpacity>
                 {index === 0 && (
-                  <View className="absolute bottom-0 left-0 right-0 bg-black/70 py-1">
-                    <Text className="text-white text-xs text-center">{t("mainImage")}</Text>
+                  <View style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                    borderBottomLeftRadius: 16,
+                    borderBottomRightRadius: 16,
+                    paddingVertical: 4
+                  }}>
+                    <Text style={{ 
+                      color: '#ffffff',
+                      fontSize: 10,
+                      fontWeight: '700',
+                      textAlign: 'center'
+                    }}>PRINCIPALE</Text>
                   </View>
                 )}
               </View>
             ))}
+            
+            {/* Bouton d'ajout */}
+            {images.length < 5 && (
+              <TouchableOpacity
+                onPress={pickImages}
+                style={{
+                  width: 100,
+                  height: 100,
+                  backgroundColor: '#f9fafb',
+                  borderWidth: 2,
+                  borderStyle: 'dashed',
+                  borderColor: '#d1d5db',
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Camera size={32} color="#9ca3af" strokeWidth={2} />
+                <Text style={{ 
+                  color: '#6b7280',
+                  fontSize: 11,
+                  fontWeight: '600',
+                  marginTop: 6
+                }}>{images.length}/5</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
-
-        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', width: '100%' }}>
-          <Text className="text-sm font-semibold text-gray-700 mb-2">{t("productNameLabel")} *</Text>
         </View>
+
+        <Text style={{ 
+          fontSize: 13,
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: 10,
+          textAlign: isRTL ? 'right' : 'left'
+        }}>{t("productNameLabel")} *</Text>
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder={t("productNamePlaceholder")}
-          className="bg-gray-50 p-4 rounded-xl mb-4"
-          style={{ textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }}
+          onFocus={() => scrollToInput(200)}
+          style={{
+            backgroundColor: '#ffffff',
+            padding: 14,
+            borderRadius: 12,
+            marginBottom: 16,
+            fontSize: 15,
+            color: '#111827',
+            borderWidth: 1,
+            borderColor: '#e5e7eb',
+            textAlign: isRTL ? 'right' : 'left',
+            writingDirection: isRTL ? 'rtl' : 'ltr'
+          }}
         />
 
-        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', width: '100%' }}>
-          <Text className="text-sm font-semibold text-gray-700 mb-2">{t("priceLabel")} *</Text>
-        </View>
+        <Text style={{ 
+          fontSize: 13,
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: 10,
+          textAlign: isRTL ? 'right' : 'left'
+        }}>{t("priceLabel")} *</Text>
         <TextInput
           value={price}
           onChangeText={setPrice}
           placeholder={t("pricePlaceholder")}
           keyboardType="numeric"
-          className="bg-gray-50 p-4 rounded-xl mb-4"
-          style={{ textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }}
+          onFocus={() => scrollToInput(280)}
+          style={{
+            backgroundColor: '#ffffff',
+            padding: 14,
+            borderRadius: 12,
+            marginBottom: 16,
+            fontSize: 15,
+            color: '#111827',
+            borderWidth: 1,
+            borderColor: '#e5e7eb',
+            textAlign: isRTL ? 'right' : 'left',
+            writingDirection: isRTL ? 'rtl' : 'ltr'
+          }}
         />
 
-        {/* Variants Toggle */}
+        {/* Variants Toggle - Compact */}
         <TouchableOpacity
           onPress={() => setHasVariants(!hasVariants)}
-          className="flex-row items-center mb-6 bg-gray-50 p-4 rounded-xl"
-          style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}
+          style={{
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'center',
+            backgroundColor: hasVariants ? '#eff6ff' : '#f9fafb',
+            padding: 10,
+            borderRadius: 10,
+            marginBottom: 12,
+            borderWidth: 1,
+            borderColor: hasVariants ? '#3b82f6' : '#e5e7eb'
+          }}
         >
-          <View className={`w-6 h-6 rounded border-2 items-center justify-center ${
-            hasVariants ? 'bg-black border-black' : 'border-gray-300'
-          }`} style={{ marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
-            {hasVariants && <Text className="text-white text-xs font-bold">✓</Text>}
+          <View style={{
+            width: 20,
+            height: 20,
+            borderRadius: 5,
+            backgroundColor: hasVariants ? '#3b82f6' : '#ffffff',
+            borderWidth: 1.5,
+            borderColor: hasVariants ? '#3b82f6' : '#d1d5db',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: isRTL ? 0 : 10,
+            marginLeft: isRTL ? 10 : 0
+          }}>
+            {hasVariants && <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>✓</Text>}
           </View>
-          <Text className="text-sm font-medium text-gray-700">{t("hasVariants")}</Text>
+          <Text style={{ 
+            fontSize: 14,
+            fontWeight: '600',
+            color: hasVariants ? '#1e40af' : '#374151',
+            textAlign: isRTL ? 'right' : 'left'
+          }}>{t("hasVariants")}</Text>
         </TouchableOpacity>
+
+        {/* Catégorie */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ 
+            fontSize: 13,
+            fontWeight: '700',
+            color: '#111827',
+            marginBottom: 12,
+            textAlign: isRTL ? 'right' : 'left'
+          }}>{t("categoryLabel")}</Text>
+          <TouchableOpacity
+            onPress={() => setShowCategoryModal(true)}
+            style={{
+              backgroundColor: '#ffffff',
+              padding: 16,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e5e7eb',
+              flexDirection: isRTL ? 'row-reverse' : 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <Text style={{ 
+              fontSize: 15,
+              color: selectedCategory ? '#111827' : '#9ca3af',
+              fontWeight: selectedCategory ? '600' : '400',
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
+              {selectedCategory ? selectedCategory.name : t("selectCategoryPlaceholder")}
+            </Text>
+            <Grid3X3 size={20} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
 
         {!hasVariants && (
-          <>
-            <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', width: '100%' }}>
-              <Text className="text-sm font-semibold text-gray-700 mb-2">{t("stockLabel")}</Text>
-            </View>
-            <TextInput
-              value={stock}
-              onChangeText={setStock}
-              placeholder="0"
-              keyboardType="numeric"
-              className="bg-gray-50 p-4 rounded-xl mb-4"
-              style={{ textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }}
-            />
-          </>
-        )}
-
-        {/* Variants Section - Flexible & Simple */}
-        {hasVariants && (
-          <View className="mb-6">
-            <View className="flex-row items-center justify-between mb-4" style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-              <Text className="text-lg font-bold text-gray-900" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                ✨ {t("variants")} ({variants.length})
-              </Text>
-              <TouchableOpacity
-                onPress={addVariant}
-                className="bg-black px-5 py-3 rounded-full flex-row items-center gap-2 shadow-lg"
-                style={{ 
-                  flexDirection: isRTL ? 'row-reverse' : 'row',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 3.84,
-                  elevation: 5,
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ 
+              fontSize: 13,
+              fontWeight: '700',
+              color: '#111827',
+              marginBottom: 12,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>{t("stockLabel")}</Text>
+            <View style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e5e7eb',
+              flexDirection: isRTL ? 'row-reverse' : 'row',
+              alignItems: 'center',
+              paddingHorizontal: 16
+            }}>
+              <Text style={{ 
+                fontSize: 15,
+                color: '#6b7280',
+                fontWeight: '600',
+                marginRight: isRTL ? 0 : 8,
+                marginLeft: isRTL ? 8 : 0
+              }}>📦</Text>
+              <TextInput
+                value={stock}
+                onChangeText={setStock}
+                placeholder="0"
+                keyboardType="numeric"
+                onFocus={() => scrollToInput(450)}
+                style={{
+                  flex: 1,
+                  padding: 16,
+                  fontSize: 15,
+                  color: '#111827',
+                  fontWeight: '600',
+                  textAlign: isRTL ? 'right' : 'left'
                 }}
-              >
-                <Text className="text-white font-bold text-xl">+</Text>
-                <Text className="text-white font-bold">{t("add")}</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {variants.length === 0 ? (
-              <View className="bg-gray-50 p-10 rounded-2xl items-center border-2 border-dashed border-gray-300">
-                <Text className="text-5xl mb-3">📦</Text>
-                <Text className="text-gray-700 text-center font-bold text-base mb-1">
-                  {t("noVariantsYet")}
-                </Text>
-                <Text className="text-gray-400 text-sm text-center">
-                  {t("clickAddToCreate")}
-                </Text>
-              </View>
-            ) : (
-              variants.map((variant, index) => (
-                <View key={index} className="bg-white p-5 rounded-2xl mb-3 border-2 border-gray-100 shadow-sm">
-                  {/* Header */}
-                  <View className="flex-row items-center justify-between mb-4" style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                    <View className="bg-black px-4 py-2 rounded-full">
-                      <Text className="text-white font-bold">#{index + 1}</Text>
-                    </View>
-                    <TouchableOpacity 
-                      onPress={() => removeVariant(index)} 
-                      className="bg-red-50 w-10 h-10 rounded-full items-center justify-center"
-                    >
-                      <Text className="text-red-500 font-bold text-xl">×</Text>
-                    </TouchableOpacity>
-                  </View>
-                  
-                  {/* Option 1 (ex: Taille, Capacité, Poids...) */}
-                  <View className="mb-3">
-                    <Text className="text-sm text-gray-600 mb-2 font-semibold" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                      {t("option1")} ({t("optional")})
-                    </Text>
-                    <TextInput
-                      value={variant.size}
-                      onChangeText={(text) => updateVariant(index, 'size', text)}
-                      placeholder={t("option1Placeholder")}
-                      className="bg-gray-50 px-4 py-3 rounded-xl border-2 border-gray-200 font-medium"
-                      style={{ textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }}
-                    />
-                  </View>
-                  
-                  {/* Option 2 (ex: Couleur, Matériau, Saveur...) */}
-                  <View className="mb-3">
-                    <Text className="text-sm text-gray-600 mb-2 font-semibold" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                      {t("option2")} ({t("optional")})
-                    </Text>
-                    <TextInput
-                      value={variant.color}
-                      onChangeText={(text) => updateVariant(index, 'color', text)}
-                      placeholder={t("option2Placeholder")}
-                      className="bg-gray-50 px-4 py-3 rounded-xl border-2 border-gray-200 font-medium"
-                      style={{ textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }}
-                    />
-                  </View>
-                  
-                  {/* Stock */}
-                  <View>
-                    <Text className="text-sm text-gray-600 mb-2 font-semibold" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                      📦 {t("stockLabel")}
-                    </Text>
-                    <TextInput
-                      value={variant.stock}
-                      onChangeText={(text) => updateVariant(index, 'stock', text)}
-                      placeholder="0"
-                      keyboardType="numeric"
-                      className="bg-gray-50 px-4 py-3 rounded-xl border-2 border-gray-200 font-bold text-lg"
-                      style={{ textAlign: isRTL ? 'right' : 'left' }}
-                    />
-                  </View>
-                </View>
-              ))
-            )}
-            
-            {/* Info Box */}
-            <View className="bg-blue-50 p-4 rounded-xl border border-blue-200 mt-2">
-              <Text className="text-blue-800 text-xs text-center font-medium">
-                💡 {t("variantsHint")}
-              </Text>
+              />
+              <Text style={{ 
+                fontSize: 13,
+                color: '#9ca3af',
+                fontWeight: '500'
+              }}>{t("units")}</Text>
             </View>
           </View>
         )}
 
-        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', width: '100%' }}>
-          <Text className="text-sm font-semibold text-gray-700 mb-2">{t("categoryLabel")} *</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => setShowCategoryModal(true)}
-          className="bg-gray-50 p-4 rounded-xl mb-4 flex-row items-center justify-between"
-          style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}
-        >
-          {selectedCategory ? (
-            <Text className="text-gray-900 font-medium" style={{ textAlign: isRTL ? 'right' : 'left' }}>{selectedCategory.name}</Text>
-          ) : (
-            <Text className="text-gray-500" style={{ textAlign: isRTL ? 'right' : 'left' }}>{t("selectCategoryPlaceholder")}</Text>
-          )}
-          <Grid3X3 size={20} color="#9ca3af" />
-        </TouchableOpacity>
+        {/* Variants Section - Nouveau composant ergonomique */}
+        {hasVariants && (
+          <VariantManager variants={variants} onChange={setVariants} />
+        )}
 
-        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', width: '100%' }}>
-          <Text className="text-sm font-semibold text-gray-700 mb-2">{t("descriptionLabel")}</Text>
+        {/* Description - Améliorée */}
+        <View style={{ marginBottom: 20 }}>
+          <View style={{ 
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12
+          }}>
+            <Text style={{ 
+              fontSize: 13,
+              fontWeight: '700',
+              color: '#111827',
+              textAlign: isRTL ? 'right' : 'left'
+            }}>{t("descriptionLabel")}</Text>
+            <Text style={{ 
+              fontSize: 12,
+              color: '#9ca3af',
+              fontWeight: '500'
+            }}>
+              {description.length}/500
+            </Text>
+          </View>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#e5e7eb',
+            overflow: 'hidden'
+          }}>
+            <TextInput
+              value={description}
+              onChangeText={(text) => setDescription(text.slice(0, 500))}
+              placeholder={t("descriptionPlaceholder")}
+              placeholderTextColor="#9ca3af"
+              multiline
+              numberOfLines={6}
+              maxLength={500}
+              onFocus={() => scrollToInput(550)}
+              style={{
+                padding: 16,
+                fontSize: 15,
+                color: '#111827',
+                minHeight: 120,
+                textAlignVertical: "top",
+                textAlign: isRTL ? 'right' : 'left',
+                writingDirection: isRTL ? 'rtl' : 'ltr',
+                lineHeight: 22
+              }}
+            />
+          </View>
+          <Text style={{ 
+            fontSize: 11,
+            color: '#6b7280',
+            marginTop: 6,
+            textAlign: isRTL ? 'right' : 'left'
+          }}>
+            💡 {t("descriptionHint") || "Décrivez votre produit en détail pour attirer plus de clients"}
+          </Text>
         </View>
-        <TextInput
-          value={description}
-          onChangeText={setDescription}
-          placeholder={t("descriptionPlaceholder")}
-          multiline
-          numberOfLines={4}
-          className="bg-gray-50 p-4 rounded-xl mb-6"
-          style={{ textAlignVertical: "top", textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }}
-        />
 
+        {/* Bouton Ajouter */}
         <TouchableOpacity
           onPress={handleSave}
           disabled={loading}
-          className={`p-4 rounded-xl items-center ${loading ? "bg-gray-400" : "bg-black"}`}
+          style={{
+            backgroundColor: loading ? '#9ca3af' : '#111827',
+            padding: 16,
+            borderRadius: 12,
+            alignItems: 'center'
+          }}
         >
-          <Text className="text-white font-semibold text-lg">
-            {loading ? t("addingProduct") : t("addProductButton")}
-          </Text>
+          {loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <ActivityIndicator size="small" color="#ffffff" />
+              <Text style={{ 
+                color: '#ffffff',
+                fontSize: 15,
+                fontWeight: '700'
+              }}>{t("addingProduct")}</Text>
+            </View>
+          ) : (
+            <Text style={{ 
+              color: '#ffffff',
+              fontSize: 15,
+              fontWeight: '700'
+            }}>{t("addProductButton")}</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Modal de sélection de catégorie */}
+      {/* Modal de sélection de catégorie - Moderne */}
       <Modal
         visible={showCategoryModal}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowCategoryModal(false)}
       >
-        <View className="flex-1 bg-black/50">
-          <View className="flex-1 mt-20 bg-white rounded-t-3xl">
+        <View style={{ 
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'flex-end'
+        }}>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: '80%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 8
+          }}>
             {/* Header du modal */}
-            <View className="flex-row items-center justify-between p-4 border-b border-gray-200" style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-              <Text className="text-xl font-bold" style={{ textAlign: isRTL ? 'right' : 'left' }}>{t("selectCategoryPlaceholder")}</Text>
-              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-                <X size={24} color="#000" />
+            <View style={{ 
+              flexDirection: isRTL ? 'row-reverse' : 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 20,
+              borderBottomWidth: 1,
+              borderBottomColor: '#f3f4f6'
+            }}>
+              <View>
+                <Text style={{ 
+                  fontSize: 22,
+                  fontWeight: '800',
+                  color: '#111827',
+                  textAlign: isRTL ? 'right' : 'left'
+                }}>{t("selectCategoryPlaceholder")}</Text>
+                <Text style={{ 
+                  fontSize: 13,
+                  color: '#6b7280',
+                  marginTop: 4,
+                  textAlign: isRTL ? 'right' : 'left'
+                }}>{categories.length} {t("categories")}</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => setShowCategoryModal(false)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: '#f3f4f6',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} color="#374151" strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
 
             {/* Liste des catégories */}
             {loadingCategories ? (
-              <View className="flex-1 items-center justify-center">
-                <ActivityIndicator size="large" color="#000" />
+              <View style={{ 
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 60
+              }}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text style={{ 
+                  color: '#6b7280',
+                  marginTop: 16,
+                  fontSize: 15
+                }}>{t("loading")}</Text>
               </View>
             ) : (
               <FlatList
@@ -444,22 +643,80 @@ export default function AddProductPage() {
                       setCategoryId(item.id.toString())
                       setShowCategoryModal(false)
                     }}
-                    className="bg-white p-4 rounded-xl mb-3 border-2 border-gray-200 flex-row items-center justify-between"
-                    style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}
+                    style={{
+                      backgroundColor: selectedCategory?.id === item.id ? '#eff6ff' : '#ffffff',
+                      padding: 16,
+                      borderRadius: 16,
+                      marginBottom: 10,
+                      borderWidth: 2,
+                      borderColor: selectedCategory?.id === item.id ? '#3b82f6' : '#e5e7eb',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
                   >
-                    <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                      <Text className="font-semibold text-gray-900 text-base mb-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>{item.name}</Text>
-                      <Text className="text-sm text-gray-500" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                        {item.products_count} {t("products")}
-                      </Text>
+                    <View style={{ 
+                      flex: 1,
+                      alignItems: isRTL ? 'flex-end' : 'flex-start'
+                    }}>
+                      <Text style={{ 
+                        fontWeight: '700',
+                        color: selectedCategory?.id === item.id ? '#1e40af' : '#111827',
+                        fontSize: 16,
+                        marginBottom: 4,
+                        textAlign: isRTL ? 'right' : 'left'
+                      }}>{item.name}</Text>
+                      <View style={{
+                        backgroundColor: selectedCategory?.id === item.id ? '#dbeafe' : '#f3f4f6',
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 8
+                      }}>
+                        <Text style={{ 
+                          fontSize: 12,
+                          color: selectedCategory?.id === item.id ? '#1e40af' : '#6b7280',
+                          fontWeight: '600',
+                          textAlign: isRTL ? 'right' : 'left'
+                        }}>
+                          {item.products_count} {t("products")}
+                        </Text>
+                      </View>
                     </View>
-                    <Grid3X3 size={24} color="#9ca3af" />
+                    <View style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      backgroundColor: selectedCategory?.id === item.id ? '#3b82f6' : '#f9fafb',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Grid3X3 size={20} color={selectedCategory?.id === item.id ? '#ffffff' : '#9ca3af'} strokeWidth={2.5} />
+                    </View>
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
-                  <View className="items-center justify-center py-12">
-                    <Grid3X3 size={48} color="#d1d5db" />
-                    <Text className="text-gray-500 mt-4" style={{ textAlign: isRTL ? 'right' : 'left' }}>{t("noCategories")}</Text>
+                  <View style={{ 
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingVertical: 60
+                  }}>
+                    <View style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      backgroundColor: '#f3f4f6',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 16
+                    }}>
+                      <Grid3X3 size={40} color="#d1d5db" strokeWidth={2} />
+                    </View>
+                    <Text style={{ 
+                      color: '#6b7280',
+                      fontSize: 16,
+                      fontWeight: '600',
+                      textAlign: 'center'
+                    }}>{t("noCategories")}</Text>
                   </View>
                 }
               />

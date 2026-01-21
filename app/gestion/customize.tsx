@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { shopsAPI } from "@/lib/api"
 import { X } from "lucide-react-native"
+import SafeBottomButton from "@/components/safe-bottom-button"
 
 export default function CustomizePage() {
   const { user } = useAuth()
@@ -61,74 +62,204 @@ export default function CustomizePage() {
   }
 
   return (
-    <View className="flex-1 bg-white">
-      <View className={`flex-row items-center justify-between p-4 pt-12 border-b border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <Text className="text-xl font-bold" style={isRTL ? { textAlign: 'right' } : {}}>{t("customize")}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <X size={24} color="#000" />
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      {/* Header moderne */}
+      <View style={{
+        backgroundColor: '#ffffff',
+        paddingTop: 48,
+        paddingBottom: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 4,
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <Text style={{ 
+          fontSize: 20,
+          fontWeight: '800',
+          color: '#111827',
+          textAlign: isRTL ? 'right' : 'left'
+        }}>{t("customize")}</Text>
+        <TouchableOpacity 
+          onPress={() => router.back()}
+          style={{
+            width: 36,
+            height: 36,
+            backgroundColor: '#f3f4f6',
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <X size={20} color="#111827" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 p-4">
-        <Text className="text-sm font-semibold text-gray-700 mb-2" style={isRTL ? { textAlign: 'right' } : {}}>{t("shopName")}</Text>
-        <TextInput
-          value={shopName}
-          onChangeText={setShopName}
-          placeholder={t("shopNamePlaceholder")}
-          className="bg-gray-50 p-4 rounded-xl mb-4"
-          style={isRTL ? { textAlign: 'right', writingDirection: 'rtl' } : {}}
-        />
-
-        <Text className="text-sm font-semibold text-gray-700 mb-2" style={isRTL ? { textAlign: 'right' } : {}}>{t("description")}</Text>
-        <TextInput
-          value={description}
-          onChangeText={setDescription}
-          placeholder={t("shopDescriptionPlaceholder")}
-          multiline
-          numberOfLines={3}
-          className="bg-gray-50 p-4 rounded-xl mb-6"
-          style={isRTL ? { textAlignVertical: "top", textAlign: 'right', writingDirection: 'rtl' } : { textAlignVertical: "top" }}
-        />
-
-        <Text className="text-lg font-bold mb-4" style={isRTL ? { textAlign: 'right' } : {}}>{t("accentColor")}</Text>
-        <View className="flex-row flex-wrap mb-6">
-          {COLORS.map((color) => (
-            <TouchableOpacity
-              key={color.value}
-              onPress={() => setAccentColor(color.value)}
-              className="mr-3 mb-3"
-            >
-              <View
-                style={{ backgroundColor: color.value }}
-                className={`w-16 h-16 rounded-xl ${
-                  accentColor === color.value ? "border-4 border-gray-400" : ""
-                }`}
-              />
-              <Text className="text-xs text-center mt-1">{color.name}</Text>
-            </TouchableOpacity>
-          ))}
+      <ScrollView 
+        style={{ flex: 1, backgroundColor: '#f9fafb' }}
+        contentContainerStyle={{ padding: 12, paddingBottom: 80 }}
+      >
+        {/* Nom de la boutique */}
+        <View style={{
+          backgroundColor: '#ffffff',
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 2
+        }}>
+          <Text style={{ 
+            fontSize: 12,
+            fontWeight: '700',
+            color: '#111827',
+            marginBottom: 8,
+            textAlign: isRTL ? 'right' : 'left'
+          }}>{t("shopName")}</Text>
+          <TextInput
+            value={shopName}
+            onChangeText={setShopName}
+            placeholder={t("shopNamePlaceholder")}
+            placeholderTextColor="#9ca3af"
+            style={{
+              backgroundColor: '#f9fafb',
+              padding: 10,
+              borderRadius: 10,
+              fontSize: 14,
+              color: '#111827',
+              fontWeight: '600',
+              borderWidth: 1.5,
+              borderColor: shopName ? '#3b82f6' : '#e5e7eb',
+              textAlign: isRTL ? 'right' : 'left',
+              writingDirection: isRTL ? 'rtl' : 'ltr'
+            }}
+          />
         </View>
 
-        <View className="bg-gray-50 p-4 rounded-xl mb-6">
-          <Text className="text-sm font-semibold mb-2" style={isRTL ? { textAlign: 'right' } : {}}>{t("preview")}</Text>
-          <View style={{ backgroundColor: "#000" }} className="p-4 rounded-xl">
-            <Text className="text-white font-bold text-lg mb-2" style={isRTL ? { textAlign: 'right' } : {}}>{t("myShopPreview")}</Text>
-            <View style={{ backgroundColor: accentColor }} className="p-3 rounded-lg">
-              <Text className="text-white text-center">{t("actionButton")}</Text>
-            </View>
+        {/* Description */}
+        <View style={{
+          backgroundColor: '#ffffff',
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 2
+        }}>
+          <View style={{
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}>
+            <Text style={{ 
+              fontSize: 12,
+              fontWeight: '700',
+              color: '#111827',
+              textAlign: isRTL ? 'right' : 'left'
+            }}>{t("description")}</Text>
+            <Text style={{ 
+              fontSize: 10,
+              color: '#9ca3af',
+              fontWeight: '600'
+            }}>{description.length}/200</Text>
+          </View>
+          <TextInput
+            value={description}
+            onChangeText={(text) => setDescription(text.slice(0, 200))}
+            placeholder={t("shopDescriptionPlaceholder")}
+            placeholderTextColor="#9ca3af"
+            multiline
+            numberOfLines={3}
+            maxLength={200}
+            style={{
+              backgroundColor: '#f9fafb',
+              padding: 10,
+              borderRadius: 10,
+              fontSize: 13,
+              color: '#111827',
+              minHeight: 80,
+              textAlignVertical: "top",
+              borderWidth: 1.5,
+              borderColor: description ? '#3b82f6' : '#e5e7eb',
+              textAlign: isRTL ? 'right' : 'left',
+              writingDirection: isRTL ? 'rtl' : 'ltr',
+              lineHeight: 18
+            }}
+          />
+        </View>
+
+        {/* Couleur d'accent */}
+        <View style={{
+          backgroundColor: '#ffffff',
+          borderRadius: 12,
+          padding: 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 2
+        }}>
+          <Text style={{ 
+            fontSize: 12,
+            fontWeight: '700',
+            color: '#111827',
+            marginBottom: 12,
+            textAlign: isRTL ? 'right' : 'left'
+          }}>{t("accentColor")}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {COLORS.map((color) => (
+              <TouchableOpacity
+                key={color.value}
+                onPress={() => setAccentColor(color.value)}
+                style={{ alignItems: 'center' }}
+              >
+                <View style={{
+                  width: 48,
+                  height: 48,
+                  backgroundColor: color.value,
+                  borderRadius: 12,
+                  borderWidth: accentColor === color.value ? 2.5 : 0,
+                  borderColor: '#111827',
+                  shadowColor: color.value,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: accentColor === color.value ? 0.4 : 0.2,
+                  shadowRadius: 6,
+                  elevation: accentColor === color.value ? 5 : 2,
+                  transform: [{ scale: accentColor === color.value ? 1.05 : 1 }]
+                }} />
+                <Text style={{ 
+                  fontSize: 10,
+                  color: accentColor === color.value ? '#111827' : '#6b7280',
+                  fontWeight: accentColor === color.value ? '700' : '500',
+                  marginTop: 4,
+                  textAlign: 'center'
+                }}>{color.name}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={loading}
-          className={`p-4 rounded-xl items-center ${loading ? "bg-gray-400" : "bg-black"}`}
-        >
-          <Text className="text-white font-semibold text-lg">
-            {loading ? t("saving") : t("save")}
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      {/* Bouton Enregistrer fixe */}
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+        <SafeBottomButton
+          onPress={handleSave}
+          title={loading ? t("saving") : t("save")}
+          loading={loading}
+          variant="black"
+        />
+      </View>
     </View>
   )
 }

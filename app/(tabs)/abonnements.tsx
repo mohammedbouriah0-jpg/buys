@@ -3,21 +3,22 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  Dimensions,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { Heart, MessageCircle, Share2, ShoppingBag } from "lucide-react-native";
-import { videosAPI } from "@/lib/api";
+import { videosAPI, getMediaUrl } from "@/lib/api";
 import { useRouter } from "expo-router";
 
-const { height, width } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 export default function AbonnementsPage() {
   const router = useRouter();
+  const [containerHeight, setContainerHeight] = useState(0);
   const [videos, setVideos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -79,9 +80,9 @@ export default function AbonnementsPage() {
     const isActive = index === currentIndex;
 
     return (
-      <View style={styles.videoContainer}>
+      <View style={[styles.videoContainer, { width, height: containerHeight }]}>
         <Video
-          source={{ uri: item.video_url }}
+          source={{ uri: getMediaUrl(item.video_url) }}
           style={styles.video}
           resizeMode={ResizeMode.COVER}
           shouldPlay={isActive}
@@ -153,7 +154,10 @@ export default function AbonnementsPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <View 
+      style={styles.container}
+      onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+    >
       <StatusBar barStyle="light-content" />
       <FlatList
         ref={flatListRef}
@@ -162,7 +166,7 @@ export default function AbonnementsPage() {
         keyExtractor={(item) => item.id.toString()}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        snapToInterval={height}
+        snapToInterval={containerHeight}
         snapToAlignment="start"
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
@@ -207,8 +211,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   videoContainer: {
-    width,
-    height,
     position: "relative",
   },
   video: {
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
   rightActions: {
     position: "absolute",
     right: 12,
-    bottom: 100,
+    bottom: 20,
     gap: 24,
     alignItems: "center",
   },
@@ -272,7 +274,7 @@ const styles = StyleSheet.create({
   // Bottom Info
   bottomInfo: {
     position: "absolute",
-    bottom: 100,
+    bottom: 20,
     left: 12,
     right: 80,
   },

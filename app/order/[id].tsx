@@ -14,8 +14,12 @@ interface OrderDetails {
   created_at: string
   shipping_address: string
   phone: string
-  user_name: string
-  user_email: string
+  user_name?: string
+  user_email?: string
+  customer_name?: string
+  customer_phone?: string
+  customer_email?: string
+  returns_count?: number
   items: Array<{
     product_id: number
     product_name: string
@@ -254,7 +258,7 @@ export default function OrderDetailsPage() {
         </View>
 
         {/* Client Info (pour boutiques) */}
-        {isShop && (
+        {isShop ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>{t("clientInfo")}</Text>
             <View style={styles.card}>
@@ -264,11 +268,11 @@ export default function OrderDetailsPage() {
                 </View>
                 <View style={[styles.infoContent, isRTL && { alignItems: 'flex-end' }]}>
                   <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t("clientName")}</Text>
-                  <Text style={[styles.infoValue, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>{order.user_name || t("notSpecified")}</Text>
+                  <Text style={[styles.infoValue, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}>{order.customer_name || order.user_name || t("notSpecified")}</Text>
                 </View>
               </View>
 
-              {order.user_email && (
+              {order.user_email ? (
                 <View style={[styles.infoRow, isRTL && { flexDirection: 'row-reverse' }]}>
                   <View style={styles.infoIcon}>
                     <User size={20} color="#6b7280" />
@@ -278,7 +282,7 @@ export default function OrderDetailsPage() {
                     <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{order.user_email}</Text>
                   </View>
                 </View>
-              )}
+              ) : null}
 
               <View style={[styles.infoRow, isRTL && { flexDirection: 'row-reverse' }]}>
                 <View style={styles.infoIcon}>
@@ -286,12 +290,12 @@ export default function OrderDetailsPage() {
                 </View>
                 <View style={[styles.infoContent, isRTL && { alignItems: 'flex-end' }]}>
                   <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t("phone")}</Text>
-                  <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{order.phone || t("notSpecified")}</Text>
+                  <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{order.customer_phone || order.phone || t("notSpecified")}</Text>
                 </View>
               </View>
 
               {/* Badge d'avertissement pour clients à risque */}
-              {(order as any).returns_count >= 2 && (
+              {(order as any).returns_count >= 2 ? (
                 <View style={[styles.warningBadge, isRTL && { flexDirection: 'row-reverse' }]}>
                   <View style={styles.warningIcon}>
                     <Text style={styles.warningIconText}>⚠️</Text>
@@ -303,13 +307,13 @@ export default function OrderDetailsPage() {
                     </Text>
                   </View>
                 </View>
-              )}
+              ) : null}
             </View>
           </View>
-        )}
+        ) : null}
 
         {/* Message retour effectué */}
-        {(order as any).return_requested && (
+        {(order as any).return_requested ? (
           <View style={styles.section}>
             <View style={styles.returnRequestedCard}>
               <View style={styles.returnRequestedIcon}>
@@ -324,15 +328,15 @@ export default function OrderDetailsPage() {
                     ? 'Ce client a retourné cette commande' 
                     : 'Vous avez retourné cette commande'}
                 </Text>
-                {(order as any).return_reason && (
+                {(order as any).return_reason ? (
                   <Text style={styles.returnReason}>
                     {`Raison: ${(order as any).return_reason}`}
                   </Text>
-                )}
+                ) : null}
               </View>
             </View>
           </View>
-        )}
+        ) : null}
 
         {/* Delivery Address */}
         <View style={styles.section}>
@@ -364,20 +368,20 @@ export default function OrderDetailsPage() {
                     <Text style={styles.productName} numberOfLines={2}>
                       {item.product_name}
                     </Text>
-                    {((item as any).variant_size || (item as any).variant_color) && (
+                    {Boolean((item as any).variant_size || (item as any).variant_color) ? (
                       <View style={[styles.variantsRow, isRTL && { flexDirection: 'row-reverse' }]}>
-                        {(item as any).variant_size && (
+                        {(item as any).variant_size ? (
                           <View style={styles.variantBadge}>
                             <Text style={styles.variantText}>{(item as any).variant_size}</Text>
                           </View>
-                        )}
-                        {(item as any).variant_color && (
+                        ) : null}
+                        {(item as any).variant_color ? (
                           <View style={styles.variantBadge}>
                             <Text style={styles.variantText}>{(item as any).variant_color}</Text>
                           </View>
-                        )}
+                        ) : null}
                       </View>
-                    )}
+                    ) : null}
                     <Text style={styles.productQuantity}>{`Quantité: ${item.quantity}`}</Text>
                     <Text style={styles.productPrice}>
                       {`${item.price.toLocaleString()} DA × ${item.quantity}`}
@@ -432,12 +436,12 @@ export default function OrderDetailsPage() {
         </View>
 
         {/* Action Buttons (pour boutiques) */}
-        {isShop && (
+        {isShop ? (
           <View style={styles.section}>
             {/* Boutons de progression normale */}
-            {order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'return_requested' && (
+            {order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'return_requested' ? (
               <>
-                {getNextStatus(order.status) && (
+                {getNextStatus(order.status) !== null ? (
                   <TouchableOpacity
                     style={styles.primaryButton}
                     onPress={() => updateOrderStatus(getNextStatus(order.status)!)}
@@ -446,7 +450,7 @@ export default function OrderDetailsPage() {
                       {getNextStatusText(order.status)}
                     </Text>
                   </TouchableOpacity>
-                )}
+                ) : null}
                 
                 <TouchableOpacity
                   style={styles.cancelButton}
@@ -464,10 +468,10 @@ export default function OrderDetailsPage() {
                   <Text style={styles.cancelButtonText}>Annuler la commande</Text>
                 </TouchableOpacity>
               </>
-            )}
+            ) : null}
 
             {/* Bouton marquer comme retourné (si livrée et pas déjà retournée) */}
-            {order.status === 'delivered' && !(order as any).return_requested && (
+            {order.status === 'delivered' && !(order as any).return_requested ? (
               <TouchableOpacity 
                 style={styles.returnButton} 
                 onPress={() => setShowReturnModal(true)}
@@ -481,9 +485,9 @@ export default function OrderDetailsPage() {
                   <Text style={styles.returnButtonSubtitle}>Le client a retourné le colis</Text>
                 </View>
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
-        )}
+        ) : null}
 
         <View style={{ height: 32 }} />
       </ScrollView>

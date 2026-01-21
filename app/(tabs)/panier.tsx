@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from "react-native"
 import { Link, useRouter } from "expo-router"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Trash2, Minus, Plus, ShoppingBag } from "lucide-react-native"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
@@ -18,6 +19,7 @@ export default function PanierPage() {
   const { isAuthenticated } = useAuth()
   const { t, isRTL } = useLanguage()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   if (items.length === 0) {
     return (
@@ -126,7 +128,7 @@ export default function PanierPage() {
         </View>
       </ScrollView>
 
-      <View style={styles.checkoutContainer}>
+      <View style={[styles.checkoutContainer, { bottom: 64 + Math.max(insets.bottom, 0) }]}>
         <View style={[styles.totalRow, isRTL && { flexDirection: 'row-reverse' }]}>
           <Text style={[styles.totalLabel, isRTL && { textAlign: 'right' }]}>{t('total')}</Text>
           <Text style={[styles.totalPrice, isRTL && { textAlign: 'left' }]}>{totalPrice.toLocaleString()} DA</Text>
@@ -221,11 +223,13 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: "600",
+    color: "#000",
   },
   productPrice: {
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 4,
+    color: "#000",
   },
   itemActions: {
     flexDirection: "row",
@@ -251,6 +255,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     minWidth: 32,
     textAlign: "center",
+    color: "#000",
   },
   deleteButton: {
     width: 40,
@@ -268,10 +273,10 @@ const styles = StyleSheet.create({
   itemTotalPrice: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#000",
   },
   checkoutContainer: {
     position: "absolute",
-    bottom: 64,
     left: 0,
     right: 0,
     padding: 16,
@@ -287,10 +292,12 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 18,
     fontWeight: "600",
+    color: "#000",
   },
   totalPrice: {
     fontSize: 24,
     fontWeight: "bold",
+    color: "#000",
   },
   checkoutButton: {
     backgroundColor: "#000",

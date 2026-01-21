@@ -89,43 +89,108 @@ export default function PaymentSettings() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white pt-12 pb-6 px-6 border-b border-gray-200">
-        <View className={`flex-row items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      {/* Header moderne */}
+      <View style={{
+        backgroundColor: '#1e293b',
+        paddingTop: 48,
+        paddingBottom: 16,
+        paddingHorizontal: 14,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+        elevation: 6
+      }}>
+        <View style={{ 
+          flexDirection: isRTL ? 'row-reverse' : 'row',
+          alignItems: 'center'
+        }}>
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-gray-100 p-2 rounded-full"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              padding: 8,
+              borderRadius: 12
+            }}
           >
-            <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={24} color="#000" />
+            <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={22} color="#ffffff" />
           </TouchableOpacity>
-          <View className={`flex-1 ${isRTL ? 'mr-4' : 'ml-4'}`}>
-            <Text className="text-black text-xl font-bold" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+          <View style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
+            <Text style={{ 
+              color: '#ffffff',
+              fontSize: 20,
+              fontWeight: '900',
+              letterSpacing: 0.5,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
               Paramètres de paiement
             </Text>
-            <Text className="text-gray-600 text-sm" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+            <Text style={{ 
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontSize: 12,
+              fontWeight: '600',
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
               Configuration Baridimob/CCP
             </Text>
           </View>
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-6 pt-6">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12, paddingTop: 16 }}>
         {/* Info */}
-        <View className="bg-blue-50 border-l-4 border-blue-400 rounded-xl p-4 mb-6">
-          <View className={`flex-row items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <Ionicons name="information-circle" size={20} color="#3b82f6" />
-            <Text className={`text-blue-700 text-sm flex-1 ${isRTL ? 'mr-2 text-right' : 'ml-2'}`}>
+        <View style={{
+          backgroundColor: '#eff6ff',
+          borderLeftWidth: 3,
+          borderLeftColor: '#3b82f6',
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 12
+        }}>
+          <View style={{ 
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'flex-start'
+          }}>
+            <Ionicons name="information-circle" size={18} color="#3b82f6" />
+            <Text style={{ 
+              color: '#1e40af',
+              fontSize: 12,
+              fontWeight: '600',
+              flex: 1,
+              marginLeft: isRTL ? 0 : 8,
+              marginRight: isRTL ? 8 : 0,
+              textAlign: isRTL ? 'right' : 'left',
+              lineHeight: 18
+            }}>
               Ces informations seront affichées aux boutiques pour effectuer le paiement de l'abonnement mensuel.
             </Text>
           </View>
         </View>
 
         {/* Formulaire */}
-        <View className="bg-white rounded-2xl p-6 mb-6">
+        <View style={{
+          backgroundColor: '#ffffff',
+          borderRadius: 14,
+          padding: 14,
+          marginBottom: 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+          elevation: 2
+        }}>
           {/* Numéro CCP */}
-          <View className="mb-5">
-            <Text className="text-gray-700 font-semibold mb-2" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ 
+              color: '#374151',
+              fontWeight: '700',
+              fontSize: 12,
+              marginBottom: 6,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
               Numéro CCP *
             </Text>
             <TextInput
@@ -133,14 +198,28 @@ export default function PaymentSettings() {
               onChangeText={(text) => setSettings({ ...settings, ccp_number: text })}
               placeholder="00799999001234567890"
               keyboardType="numeric"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
-              style={{ textAlign: isRTL ? 'right' : 'left' }}
+              style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: '#111827',
+                fontSize: 13,
+                fontWeight: '600',
+                textAlign: isRTL ? 'right' : 'left'
+              }}
             />
           </View>
 
           {/* Clé */}
-          <View className="mb-5">
-            <Text className="text-gray-700 font-semibold mb-2" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ 
+              color: '#374151',
+              fontWeight: '700',
+              fontSize: 12,
+              marginBottom: 6,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
               Clé *
             </Text>
             <TextInput
@@ -149,28 +228,56 @@ export default function PaymentSettings() {
               placeholder="97"
               keyboardType="numeric"
               maxLength={2}
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
-              style={{ textAlign: isRTL ? 'right' : 'left' }}
+              style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: '#111827',
+                fontSize: 13,
+                fontWeight: '600',
+                textAlign: isRTL ? 'right' : 'left'
+              }}
             />
           </View>
 
           {/* Nom du titulaire */}
-          <View className="mb-5">
-            <Text className="text-gray-700 font-semibold mb-2" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ 
+              color: '#374151',
+              fontWeight: '700',
+              fontSize: 12,
+              marginBottom: 6,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
               Nom du titulaire *
             </Text>
             <TextInput
               value={settings.account_holder_name}
               onChangeText={(text) => setSettings({ ...settings, account_holder_name: text })}
               placeholder="Ahmed Karim"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
-              style={{ textAlign: isRTL ? 'right' : 'left' }}
+              style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: '#111827',
+                fontSize: 13,
+                fontWeight: '600',
+                textAlign: isRTL ? 'right' : 'left'
+              }}
             />
           </View>
 
           {/* Montant */}
-          <View className="mb-5">
-            <Text className="text-gray-700 font-semibold mb-2" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ 
+              color: '#374151',
+              fontWeight: '700',
+              fontSize: 12,
+              marginBottom: 6,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
               Montant de l'abonnement (DA) *
             </Text>
             <TextInput
@@ -178,14 +285,28 @@ export default function PaymentSettings() {
               onChangeText={(text) => setSettings({ ...settings, subscription_amount: text })}
               placeholder="5000"
               keyboardType="numeric"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
-              style={{ textAlign: isRTL ? 'right' : 'left' }}
+              style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: '#111827',
+                fontSize: 13,
+                fontWeight: '600',
+                textAlign: isRTL ? 'right' : 'left'
+              }}
             />
           </View>
 
           {/* Informations additionnelles */}
-          <View className="mb-2">
-            <Text className="text-gray-700 font-semibold mb-2" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+          <View>
+            <Text style={{ 
+              color: '#374151',
+              fontWeight: '700',
+              fontSize: 12,
+              marginBottom: 6,
+              textAlign: isRTL ? 'right' : 'left'
+            }}>
               Informations additionnelles
             </Text>
             <TextInput
@@ -193,44 +314,119 @@ export default function PaymentSettings() {
               onChangeText={(text) => setSettings({ ...settings, additional_info: text })}
               placeholder="Instructions supplémentaires..."
               multiline
-              numberOfLines={4}
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
-              style={{ textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }}
+              numberOfLines={3}
+              style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: '#111827',
+                fontSize: 13,
+                fontWeight: '600',
+                minHeight: 80,
+                textAlignVertical: 'top',
+                textAlign: isRTL ? 'right' : 'left'
+              }}
             />
           </View>
         </View>
 
         {/* Aperçu */}
-        <View className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 mb-6">
-          <Text className="text-green-900 font-bold text-lg mb-4" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+        <View style={{
+          backgroundColor: '#f0fdf4',
+          borderWidth: 1,
+          borderColor: '#bbf7d0',
+          borderRadius: 14,
+          padding: 14,
+          marginBottom: 12
+        }}>
+          <Text style={{ 
+            color: '#14532d',
+            fontWeight: '800',
+            fontSize: 14,
+            marginBottom: 10,
+            textAlign: isRTL ? 'right' : 'left'
+          }}>
             Aperçu pour les boutiques
           </Text>
           
-          <View className="bg-white rounded-xl p-4">
-            <View className="mb-3">
-              <Text className="text-gray-500 text-xs mb-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>Numéro CCP</Text>
-              <Text className="text-gray-900 font-bold text-lg" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 12,
+            padding: 12
+          }}>
+            <View style={{ marginBottom: 10 }}>
+              <Text style={{ 
+                color: '#6b7280',
+                fontSize: 10,
+                fontWeight: '600',
+                marginBottom: 3,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>Numéro CCP</Text>
+              <Text style={{ 
+                color: '#111827',
+                fontWeight: '800',
+                fontSize: 15,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>
                 {settings.ccp_number || '---'}
               </Text>
             </View>
             
-            <View className="mb-3">
-              <Text className="text-gray-500 text-xs mb-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>Clé</Text>
-              <Text className="text-gray-900 font-bold text-lg" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+            <View style={{ marginBottom: 10 }}>
+              <Text style={{ 
+                color: '#6b7280',
+                fontSize: 10,
+                fontWeight: '600',
+                marginBottom: 3,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>Clé</Text>
+              <Text style={{ 
+                color: '#111827',
+                fontWeight: '800',
+                fontSize: 15,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>
                 {settings.ccp_key || '--'}
               </Text>
             </View>
             
-            <View className="mb-3">
-              <Text className="text-gray-500 text-xs mb-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>Nom du titulaire</Text>
-              <Text className="text-gray-900 font-bold" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+            <View style={{ marginBottom: 10 }}>
+              <Text style={{ 
+                color: '#6b7280',
+                fontSize: 10,
+                fontWeight: '600',
+                marginBottom: 3,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>Nom du titulaire</Text>
+              <Text style={{ 
+                color: '#111827',
+                fontWeight: '800',
+                fontSize: 13,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>
                 {settings.account_holder_name || '---'}
               </Text>
             </View>
             
-            <View className="bg-green-50 rounded-lg p-3">
-              <Text className="text-gray-500 text-xs mb-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>Montant à payer</Text>
-              <Text className="text-green-700 font-bold text-2xl" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+            <View style={{
+              backgroundColor: '#f0fdf4',
+              borderRadius: 10,
+              padding: 10
+            }}>
+              <Text style={{ 
+                color: '#6b7280',
+                fontSize: 10,
+                fontWeight: '600',
+                marginBottom: 3,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>Montant à payer</Text>
+              <Text style={{ 
+                color: '#15803d',
+                fontWeight: '900',
+                fontSize: 20,
+                textAlign: isRTL ? 'right' : 'left'
+              }}>
                 {settings.subscription_amount || '0'} DA
               </Text>
             </View>
@@ -241,22 +437,32 @@ export default function PaymentSettings() {
         <TouchableOpacity
           onPress={handleSave}
           disabled={saving}
-          className="rounded-2xl py-4 flex-row items-center justify-center mb-8"
           style={{
             backgroundColor: '#10b981',
+            borderRadius: 12,
+            paddingVertical: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
             shadowColor: '#10b981',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 6,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.25,
+            shadowRadius: 6,
+            elevation: 5,
           }}
         >
           {saving ? (
             <ActivityIndicator color="white" />
           ) : (
             <>
-              <Ionicons name="save" size={20} color="white" />
-              <Text className="text-white font-bold text-base ml-2">Enregistrer les paramètres</Text>
+              <Ionicons name="save" size={18} color="white" />
+              <Text style={{ 
+                color: '#ffffff',
+                fontWeight: '800',
+                fontSize: 14,
+                marginLeft: 6
+              }}>Enregistrer les paramètres</Text>
             </>
           )}
         </TouchableOpacity>

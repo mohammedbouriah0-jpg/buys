@@ -86,7 +86,7 @@ export function ReturnModal({ visible, onClose, onConfirm, customerName, returns
           </View>
 
           {/* Warning if multiple returns */}
-          {returnsCount >= 1 && (
+          {(returnsCount ?? 0) >= 1 && (
             <View style={styles.warningBox}>
               <AlertCircle size={20} color="#f59e0b" />
               <Text style={styles.warningText}>
