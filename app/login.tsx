@@ -19,8 +19,10 @@ import { useLanguage } from "@/lib/i18n/language-context"
 import { LanguageSelector } from "@/components/language-selector"
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, User, Store, X } from "lucide-react-native"
 import { signInWithGoogle, configureGoogleSignIn } from "@/lib/google-auth"
+import { signInWithApple, isAppleSignInAvailable } from "@/lib/apple-auth"
 import { API_URL } from "@/config"
 import Svg, { Path } from "react-native-svg"
+import { Platform } from "react-native"
 
 // Composant Logo Google officiel
 const GoogleLogo = ({ size = 20 }: { size?: number }) => (
@@ -50,6 +52,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [appleLoading, setAppleLoading] = useState(false)
+  const [showAppleButton, setShowAppleButton] = useState(false)
   const [error, setError] = useState("")
   const [showUserTypeModal, setShowUserTypeModal] = useState(false)
   const [pendingGoogleData, setPendingGoogleData] = useState<any>(null)
@@ -63,6 +67,11 @@ export default function LoginPage() {
   // Configurer Google Sign-In au montage
   useEffect(() => {
     configureGoogleSignIn();
+    
+    // Vérifier si Apple Sign-In est disponible
+    if (Platform.OS === 'ios') {
+      isAppleSignInAvailable().then(setShowAppleButton);
+    }
   }, []);
 
   const handleLogin = async () => {
@@ -187,6 +196,104 @@ export default function LoginPage() {
       Alert.alert('Erreur', error.message || 'Erreur lors de la création du compte');
     } finally {
       setGoogleLoading(false);
+      setPendingGoogleData(null);
+    }
+  }
+
+  const handleAppleLogin = async () => {
+    setAppleLoading(true);
+    try {
+      const result = await signInWithApple();
+      
+      if (!result.success) {
+        if (result.error !== 'Connexion annulée par l\'utilisateur') {
+          Alert.alert('Erreur', result.error || 'Connexion Apple échouée');
+        }
+        setAppleLoading(false);
+        return;
+      }
+
+      // Vérifier si l'utilisateur existe déjà
+      const checkResponse = await fetch(`${API_URL}/auth/apple/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identityToken: result.identityToken,
+          user: result.user,
+        })
+      });
+
+      const checkData = await checkResponse.json();
+
+      if (checkData.exists) {
+        // Utilisateur existe → connexion directe
+        const loginResponse = await fetch(`${API_URL}/auth/apple`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identityToken: result.identityToken,
+            authorizationCode: result.authorizationCode,
+            user: result.user,
+          })
+        });
+
+        const loginData = await loginResponse.json();
+        
+        if (!loginResponse.ok) {
+          throw new Error(loginData.error || 'Erreur de connexion');
+        }
+
+        await loginWithToken(loginData.token, loginData.user);
+        router.replace('/');
+      } else {
+        // Nouvel utilisateur → afficher le choix client/boutique
+        setPendingGoogleData({
+          identityToken: result.identityToken,
+          authorizationCode: result.authorizationCode,
+          user: result.user,
+          provider: 'apple'
+        });
+        setShowUserTypeModal(true);
+      }
+
+    } catch (error: any) {
+      console.error('Erreur Apple Auth:', error);
+      Alert.alert('Erreur', error.message || 'Connexion Apple échouée');
+    } finally {
+      setAppleLoading(false);
+    }
+  }
+
+  const completeAppleSignup = async (userType: 'client' | 'shop') => {
+    if (!pendingGoogleData) return;
+    
+    setAppleLoading(true);
+    setShowUserTypeModal(false);
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/apple`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identityToken: pendingGoogleData.identityToken,
+          authorizationCode: pendingGoogleData.authorizationCode,
+          user: pendingGoogleData.user,
+          userType: userType
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur de création de compte');
+      }
+
+      await loginWithToken(data.token, data.user);
+      router.replace('/');
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message || 'Erreur lors de la création du compte');
+    } finally {
+      setAppleLoading(false);
       setPendingGoogleData(null);
     }
   }
@@ -320,6 +427,27 @@ export default function LoginPage() {
                 </>
               )}
             </TouchableOpacity>
+
+            {/* Bouton Apple (iOS uniquement) */}
+            {showAppleButton && (
+              <TouchableOpacity
+                style={[styles.appleButton, appleLoading && styles.buttonDisabled]}
+                onPress={handleAppleLogin}
+                disabled={appleLoading}
+                activeOpacity={0.8}
+              >
+                {appleLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Svg width={20} height={20} viewBox="0 0 24 24" fill="#fff">
+                      <Path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                    </Svg>
+                    <Text style={styles.appleButtonText}>{t('continueWithApple') || 'Continuer avec Apple'}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Footer */}
@@ -369,7 +497,7 @@ export default function LoginPage() {
             <View style={styles.userTypeOptions}>
               <TouchableOpacity
                 style={styles.userTypeCard}
-                onPress={() => completeGoogleSignup('client')}
+                onPress={() => pendingGoogleData?.provider === 'apple' ? completeAppleSignup('client') : completeGoogleSignup('client')}
                 activeOpacity={0.7}
               >
                 <View style={styles.userTypeIconContainer}>
@@ -383,7 +511,7 @@ export default function LoginPage() {
 
               <TouchableOpacity
                 style={styles.userTypeCard}
-                onPress={() => completeGoogleSignup('shop')}
+                onPress={() => pendingGoogleData?.provider === 'apple' ? completeAppleSignup('shop') : completeGoogleSignup('shop')}
                 activeOpacity={0.7}
               >
                 <View style={[styles.userTypeIconContainer, { backgroundColor: '#FEF3C7' }]}>
@@ -599,6 +727,27 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     color: "#1f2937",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  appleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#000",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 12,
+  },
+  appleButtonText: {
+    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.3,
